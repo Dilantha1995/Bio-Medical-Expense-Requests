@@ -1,0 +1,16 @@
+import { getSession } from "@/lib/auth";
+import NavBar from "@/components/NavBar";
+import DashboardClient from "./DashboardClient";
+
+export default async function DashboardPage() {
+  const session = await getSession();
+
+  return (
+    <div>
+      <NavBar fullName={session.fullName} role={session.role} />
+      <main className="max-w-5xl mx-auto px-4 py-6">
+        <DashboardClient role={session.role} />
+      </main>
+    </div>
+  );
+}
