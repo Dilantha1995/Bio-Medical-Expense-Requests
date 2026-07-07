@@ -27,8 +27,7 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      if (data.role === "admin") router.push("/admin/users");
-      else router.push("/dashboard");
+      router.push("/dashboard");
       router.refresh();
     } catch {
       setError("Something went wrong. Please try again.");

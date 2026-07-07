@@ -30,6 +30,14 @@ export default function NewBillForm() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [successBanner, setSuccessBanner] = useState("");
+  const [nextRefNumber, setNextRefNumber] = useState("");
+
+  function loadNextRefNumber() {
+    fetch("/api/bills/next-ref-number")
+      .then((r) => r.json())
+      .then((d) => setNextRefNumber(d.refNumber || ""));
+  }
+  useEffect(() => { loadNextRefNumber(); }, []);
 
   function set(key, value) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -104,6 +112,7 @@ export default function NewBillForm() {
         setSuccessBanner(`Saved as ${refNumber}. Ready for another bill summary.`);
         setForm(blankState());
         setSaving(false);
+        loadNextRefNumber();
       } else {
         router.push(`/bills/${id}`);
       }
@@ -115,6 +124,11 @@ export default function NewBillForm() {
 
   return (
     <div className="space-y-5">
+      {nextRefNumber && (
+        <div className="bg-blue-50 border border-blue-200 rounded-md px-4 py-2 text-sm text-blue-800">
+          This will be saved as <span className="font-mono font-semibold">{nextRefNumber}</span> — not reserved until you save. Cancel or navigate away and nothing is recorded.
+        </div>
+      )}
       <div className="grid sm:grid-cols-3 gap-4 bg-white p-4 rounded-lg shadow-sm">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
