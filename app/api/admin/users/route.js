@@ -6,7 +6,7 @@ export async function GET() {
   try {
     await requireRole("admin");
     const { rows } = await query(
-      `SELECT id, username, full_name, initials, designation, role, can_final_approve, active, created_at
+      `SELECT id, username, full_name, initials, designation, role, can_final_approve, can_manage_machines, can_access_pm_dashboard, active, created_at
        FROM users ORDER BY created_at DESC`
     );
     return NextResponse.json({ users: rows });
@@ -19,7 +19,7 @@ export async function POST(req) {
   try {
     await requireRole("admin");
     const body = await req.json();
-    const { username, password, fullName, initials, designation, role, canFinalApprove } = body;
+    const { username, password, fullName, initials, designation, role, canFinalApprove, canManageMachines, canAccessPmDashboard } = body;
 
     if (!username || !password || !fullName || !initials || !role) {
       return NextResponse.json({ error: "Username, password, full name, initials, and role are required." }, { status: 400 });
@@ -33,10 +33,10 @@ export async function POST(req) {
 
     const hash = await hashPassword(password);
     const { rows } = await query(
-      `INSERT INTO users (username, password_hash, full_name, initials, designation, role, can_final_approve, active)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,true)
-       RETURNING id, username, full_name, initials, designation, role, can_final_approve, active`,
-      [username.trim().toLowerCase(), hash, fullName, initials.trim().toUpperCase(), designation || null, role, !!canFinalApprove]
+      `INSERT INTO users (username, password_hash, full_name, initials, designation, role, can_final_approve, can_manage_machines, can_access_pm_dashboard, active)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,true)
+       RETURNING id, username, full_name, initials, designation, role, can_final_approve, can_manage_machines, can_access_pm_dashboard, active`,
+      [username.trim().toLowerCase(), hash, fullName, initials.trim().toUpperCase(), designation || null, role, !!canFinalApprove, !!canManageMachines, !!canAccessPmDashboard]
     );
     return NextResponse.json({ user: rows[0] });
   } catch (e) {

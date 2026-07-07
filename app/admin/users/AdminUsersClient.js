@@ -9,7 +9,7 @@ const ROLES = [
 ];
 
 function emptyForm() {
-  return { username: "", password: "", fullName: "", initials: "", designation: "Biomedical Engineer", role: "engineer", canFinalApprove: false };
+  return { username: "", password: "", fullName: "", initials: "", designation: "Biomedical Engineer", role: "engineer", canFinalApprove: false, canManageMachines: false, canAccessPmDashboard: false };
 }
 
 export default function AdminUsersClient() {
@@ -103,6 +103,16 @@ export default function AdminUsersClient() {
             <label htmlFor="cfa" className="text-sm text-gray-600">Can give final approval (e.g. BD Director / MD)</label>
           </div>
         )}
+        <div className="flex items-center gap-2 sm:col-span-3">
+          <input type="checkbox" id="cmm" checked={form.canManageMachines}
+            onChange={(e) => setForm({ ...form, canManageMachines: e.target.checked })} />
+          <label htmlFor="cmm" className="text-sm text-gray-600">Can add/edit machines (in addition to admins, who always can)</label>
+        </div>
+        <div className="flex items-center gap-2 sm:col-span-3">
+          <input type="checkbox" id="capd" checked={form.canAccessPmDashboard}
+            onChange={(e) => setForm({ ...form, canAccessPmDashboard: e.target.checked })} />
+          <label htmlFor="capd" className="text-sm text-gray-600">Can access the PM &amp; Installation Schedule dashboard</label>
+        </div>
         {error && <p className="text-sm text-red-600 sm:col-span-3">{error}</p>}
         <div className="sm:col-span-3">
           <button type="submit" disabled={saving}
@@ -121,6 +131,8 @@ export default function AdminUsersClient() {
               <th className="p-3">Initials</th>
               <th className="p-3">Role</th>
               <th className="p-3">Final Approver</th>
+              <th className="p-3">Manage Machines</th>
+              <th className="p-3">PM Access</th>
               <th className="p-3">Active</th>
               <th className="p-3">Actions</th>
             </tr>
@@ -144,6 +156,14 @@ export default function AdminUsersClient() {
                 <td className="p-3">
                   <input type="checkbox" checked={u.can_final_approve}
                     onChange={(e) => updateUser(u.id, { canFinalApprove: e.target.checked })} />
+                </td>
+                <td className="p-3">
+                  <input type="checkbox" checked={u.can_manage_machines}
+                    onChange={(e) => updateUser(u.id, { canManageMachines: e.target.checked })} />
+                </td>
+                <td className="p-3">
+                  <input type="checkbox" checked={u.can_access_pm_dashboard}
+                    onChange={(e) => updateUser(u.id, { canAccessPmDashboard: e.target.checked })} />
                 </td>
                 <td className="p-3">
                   <input type="checkbox" checked={u.active}

@@ -1,15 +1,14 @@
 import { getSession } from "@/lib/auth";
 import NavBar from "@/components/NavBar";
-import AdminUsersClient from "./AdminUsersClient";
+import StickerGenerator from "./StickerGenerator";
 
-export default async function AdminUsersPage() {
+export default async function StickersPage() {
   const session = await getSession();
   return (
     <div>
       <NavBar fullName={session.fullName} role={session.role} canAccessPmDashboard={session.canAccessPmDashboard} />
-      <main className="max-w-5xl mx-auto px-4 py-6">
-        <h1 className="text-xl font-semibold text-brand-navy mb-4">Manage Users</h1>
-        <AdminUsersClient />
+      <main className="max-w-6xl mx-auto px-4 py-6">
+        <StickerGenerator />
       </main>
     </div>
   );

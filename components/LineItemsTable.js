@@ -1,6 +1,7 @@
 "use client";
 
 import { emptyLineItem, lineItemTotal, grandTotal, formatMVR } from "@/lib/calc";
+import LocationPicker from "./LocationPicker";
 
 const NUMERIC_COLS = [
   { key: "days", label: "No of days" },
@@ -34,10 +35,8 @@ export default function LineItemsTable({ items, onChange }) {
         <thead className="bg-gray-50">
           <tr>
             <th className="p-2 text-left border-b">#</th>
-            <th className="p-2 text-left border-b">Name</th>
-            <th className="p-2 text-left border-b">Designation</th>
-            <th className="p-2 text-left border-b">From (loc / date)</th>
-            <th className="p-2 text-left border-b">To (loc / date)</th>
+            <th className="p-2 text-left border-b">From (island / date)</th>
+            <th className="p-2 text-left border-b">To (island / date)</th>
             <th className="p-2 text-left border-b">Mode</th>
             {NUMERIC_COLS.map((c) => (
               <th key={c.key} className="p-2 text-right border-b whitespace-nowrap">{c.label}</th>
@@ -51,23 +50,17 @@ export default function LineItemsTable({ items, onChange }) {
             <tr key={i} className="border-b last:border-0">
               <td className="p-2 align-top text-gray-400">{i + 1}</td>
               <td className="p-1 align-top">
-                <input className="w-28 border rounded px-1 py-1" value={item.name}
-                  onChange={(e) => updateItem(i, "name", e.target.value)} />
-              </td>
-              <td className="p-1 align-top">
-                <input className="w-28 border rounded px-1 py-1" value={item.designation}
-                  onChange={(e) => updateItem(i, "designation", e.target.value)} />
-              </td>
-              <td className="p-1 align-top">
-                <input className="w-24 border rounded px-1 py-1 mb-1" placeholder="Location" value={item.fromLocation}
-                  onChange={(e) => updateItem(i, "fromLocation", e.target.value)} />
-                <input type="date" className="w-24 border rounded px-1 py-1" value={item.fromDate}
+                <div className="mb-1">
+                  <LocationPicker value={item.fromLocation} onChange={(v) => updateItem(i, "fromLocation", v)} placeholder="From island" />
+                </div>
+                <input type="date" className="w-full border rounded px-1 py-1" value={item.fromDate}
                   onChange={(e) => updateItem(i, "fromDate", e.target.value)} />
               </td>
               <td className="p-1 align-top">
-                <input className="w-24 border rounded px-1 py-1 mb-1" placeholder="Location" value={item.toLocation}
-                  onChange={(e) => updateItem(i, "toLocation", e.target.value)} />
-                <input type="date" className="w-24 border rounded px-1 py-1" value={item.toDate}
+                <div className="mb-1">
+                  <LocationPicker value={item.toLocation} onChange={(v) => updateItem(i, "toLocation", v)} placeholder="To island" />
+                </div>
+                <input type="date" className="w-full border rounded px-1 py-1" value={item.toDate}
                   onChange={(e) => updateItem(i, "toDate", e.target.value)} />
               </td>
               <td className="p-1 align-top">
@@ -99,7 +92,7 @@ export default function LineItemsTable({ items, onChange }) {
         </tbody>
         <tfoot>
           <tr>
-            <td colSpan={6 + NUMERIC_COLS.length} className="p-2 text-right font-semibold border-t">TOTAL</td>
+            <td colSpan={4 + NUMERIC_COLS.length} className="p-2 text-right font-semibold border-t">TOTAL</td>
             <td className="p-2 text-right font-semibold border-t whitespace-nowrap">{formatMVR(grandTotal(items))}</td>
             <td className="border-t"></td>
           </tr>
@@ -107,7 +100,7 @@ export default function LineItemsTable({ items, onChange }) {
       </table>
       <div className="p-2">
         <button type="button" onClick={addRow} className="text-sm text-brand-navy hover:underline">
-          + Add team member row
+          + Add another location/leg
         </button>
       </div>
     </div>

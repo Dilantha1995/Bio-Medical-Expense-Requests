@@ -19,7 +19,7 @@ export default async function RequestDetailPage({ params }) {
 
   return (
     <div>
-      <NavBar fullName={session.fullName} role={session.role} />
+      <NavBar fullName={session.fullName} role={session.role} canAccessPmDashboard={session.canAccessPmDashboard} />
       <main className="max-w-4xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-4 print:hidden">
           <h1 className="text-xl font-semibold text-brand-navy">Advance Request {record.ref_number}</h1>

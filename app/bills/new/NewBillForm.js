@@ -101,7 +101,8 @@ export default function NewBillForm() {
       </div>
 
       <div className="bg-white p-4 rounded-lg shadow-sm">
-        <h2 className="text-sm font-semibold text-gray-600 mb-2">Actual Expenses (with original bills attached separately)</h2>
+        <h2 className="text-sm font-semibold text-gray-600 mb-2">Trip Locations &amp; Actual Expenses</h2>
+        <p className="text-xs text-gray-400 mb-2">Add one row per island/leg. Attach the original bills/receipts separately per your SOP.</p>
         <LineItemsTable items={items} onChange={setItems} />
       </div>
 

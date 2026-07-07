@@ -26,8 +26,6 @@ export default function PrintableForm({ doc }) {
           <thead className="bg-gray-50">
             <tr>
               <th>#</th>
-              <th>Name</th>
-              <th>Designation</th>
               <th>From</th>
               <th>To</th>
               <th>Mode</th>
@@ -46,8 +44,6 @@ export default function PrintableForm({ doc }) {
             {items.map((it, i) => (
               <tr key={i}>
                 <td>{i + 1}</td>
-                <td>{it.name}</td>
-                <td>{it.designation}</td>
                 <td>{it.fromLocation}<br />{it.fromDate}</td>
                 <td>{it.toLocation}<br />{it.toDate}</td>
                 <td>{it.mode}</td>
@@ -65,7 +61,7 @@ export default function PrintableForm({ doc }) {
           </tbody>
           <tfoot>
             <tr className="font-semibold bg-gray-50">
-              <td colSpan={14} className="text-right">TOTAL</td>
+              <td colSpan={12} className="text-right">TOTAL</td>
               <td className="text-right">{formatMVR(doc.total_amount)}</td>
             </tr>
           </tfoot>

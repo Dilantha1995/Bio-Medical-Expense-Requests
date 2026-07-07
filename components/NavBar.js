@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-export default function NavBar({ fullName, role }) {
+export default function NavBar({ fullName, role, canAccessPmDashboard }) {
   const router = useRouter();
 
   async function handleLogout() {
@@ -24,6 +24,10 @@ export default function NavBar({ fullName, role }) {
           <Link href="/dashboard" className="hover:text-brand-navy">Dashboard</Link>
           <Link href="/requests/new" className="hover:text-brand-navy">New Advance Request</Link>
           <Link href="/bills/new" className="hover:text-brand-navy">New Bill Summary</Link>
+          <Link href="/machines" className="hover:text-brand-navy">Machines</Link>
+          {(role === "admin" || canAccessPmDashboard) && (
+            <Link href="/pm" className="hover:text-brand-navy">PM Schedule</Link>
+          )}
           {role === "admin" && <Link href="/admin/users" className="hover:text-brand-navy">Users</Link>}
         </nav>
         <div className="flex items-center gap-3">

@@ -47,7 +47,7 @@ export default function NewRequestForm() {
             className="w-full border rounded-md px-3 py-2 text-sm" />
         </div>
         <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Destination (e.g. "LH, Naifaru Island")</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Trip summary (e.g. "Lh Naifaru + Hinnavaru")</label>
           <input value={destinationLabel} onChange={(e) => setDestinationLabel(e.target.value)}
             className="w-full border rounded-md px-3 py-2 text-sm" />
         </div>
@@ -65,7 +65,8 @@ export default function NewRequestForm() {
       </div>
 
       <div className="bg-white p-4 rounded-lg shadow-sm">
-        <h2 className="text-sm font-semibold text-gray-600 mb-2">Service Team Members &amp; Expenses</h2>
+        <h2 className="text-sm font-semibold text-gray-600 mb-2">Trip Locations &amp; Expenses</h2>
+        <p className="text-xs text-gray-400 mb-2">Add one row per island/leg if you're visiting multiple locations on this trip.</p>
         <LineItemsTable items={items} onChange={setItems} />
       </div>
 
