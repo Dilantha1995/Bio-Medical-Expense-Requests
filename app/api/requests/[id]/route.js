@@ -20,7 +20,19 @@ export async function GET(req, { params }) {
 export async function PATCH(req, { params }) {
   try {
     const session = await requireSession();
-    const { action, reason } = await req.json(); // action: 'check' | 'approve' | 'reject'
+    const { action, reason, returnedAt } = await req.json(); // action: 'check' | 'approve' | 'reject' | 'mark_returned'
+
+    if (action === "mark_returned") {
+      if (!["approver", "admin"].includes(session.role)) {
+        return NextResponse.json({ error: "Only approvers/supervisors can mark an engineer as returned." }, { status: 403 });
+      }
+      await query(
+        `UPDATE advance_requests SET returned_at=$1, returned_marked_by=$2, returned_marked_at=now() WHERE id=$3`,
+        [returnedAt || new Date().toISOString().slice(0, 10), session.id, params.id]
+      );
+      const updated = await fetchRequest(params.id);
+      return NextResponse.json({ request: updated });
+    }
 
     if (!["approver", "admin"].includes(session.role)) {
       return NextResponse.json({ error: "Only approvers can perform this action." }, { status: 403 });

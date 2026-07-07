@@ -11,6 +11,19 @@ const STATUS_STYLES = {
   rejected: "bg-red-100 text-red-800",
 };
 
+const BILL_STATUS_STYLES = {
+  awaiting_return: "bg-gray-100 text-gray-600",
+  pending: "bg-blue-100 text-blue-700",
+  overdue: "bg-red-100 text-red-700",
+  submitted: "bg-green-100 text-green-700",
+};
+const BILL_STATUS_LABELS = {
+  awaiting_return: "Awaiting return",
+  pending: "Bill due",
+  overdue: "Bill OVERDUE",
+  submitted: "Bill submitted",
+};
+
 function StatusBadge({ status }) {
   return (
     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[status] || "bg-gray-100 text-gray-700"}`}>
@@ -69,11 +82,12 @@ export default function DashboardClient({ role }) {
                     <th className="p-3">Destination</th>
                     <th className="p-3 text-right">Total (MVR)</th>
                     <th className="p-3">Status</th>
+                    <th className="p-3">Bill Summary</th>
                   </tr>
                 </thead>
                 <tbody>
                   {requests.length === 0 && (
-                    <tr><td colSpan={6} className="p-4 text-center text-gray-400">No advance requests yet.</td></tr>
+                    <tr><td colSpan={7} className="p-4 text-center text-gray-400">No advance requests yet.</td></tr>
                   )}
                   {requests.map((r) => (
                     <tr key={r.id} className="border-b last:border-0 hover:bg-gray-50">
@@ -85,6 +99,13 @@ export default function DashboardClient({ role }) {
                       <td className="p-3">{r.destination_label}</td>
                       <td className="p-3 text-right">{formatMVR(r.total_amount)}</td>
                       <td className="p-3"><StatusBadge status={r.status} /></td>
+                      <td className="p-3">
+                        {r.status === "approved" && (
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${BILL_STATUS_STYLES[r.bill_status] || ""}`}>
+                            {BILL_STATUS_LABELS[r.bill_status] || r.bill_status}
+                          </span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

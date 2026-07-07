@@ -73,6 +73,12 @@ CREATE TABLE IF NOT EXISTS bill_summaries (
 CREATE INDEX IF NOT EXISTS idx_advance_engineer ON advance_requests(engineer_id);
 CREATE INDEX IF NOT EXISTS idx_bill_engineer ON bill_summaries(engineer_id);
 
+-- When a supervisor/approver confirms the engineer is back in the office,
+-- the 3-working-day bill submission deadline starts counting from this date.
+ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS returned_at DATE;
+ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS returned_marked_by INTEGER REFERENCES users(id);
+ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS returned_marked_at TIMESTAMPTZ;
+
 -- Permission for non-admin users who are allowed to add/edit machines
 -- (e.g. senior engineers), in addition to admins who always can.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS can_manage_machines BOOLEAN NOT NULL DEFAULT FALSE;

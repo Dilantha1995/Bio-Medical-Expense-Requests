@@ -45,6 +45,13 @@ export async function POST(req) {
       return NextResponse.json({ error: "Summary date and at least one line item are required." }, { status: 400 });
     }
 
+    if (advanceRequestId) {
+      const owner = await query(`SELECT engineer_id FROM advance_requests WHERE id=$1`, [advanceRequestId]);
+      if (!owner.rows[0] || owner.rows[0].engineer_id !== session.id) {
+        return NextResponse.json({ error: "That advance request doesn't belong to you." }, { status: 403 });
+      }
+    }
+
     const refNumber = await nextRefNumber("BM", session.initials);
     const total = grandTotal(lineItems);
     const advReceived = parseFloat(advanceReceived) || 0;

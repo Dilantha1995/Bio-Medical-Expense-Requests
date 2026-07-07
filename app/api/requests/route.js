@@ -3,6 +3,7 @@ import { query } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { nextRefNumber } from "@/lib/refnumber";
 import { grandTotal } from "@/lib/calc";
+import { billSubmissionStatus } from "@/lib/workingDays";
 
 export async function GET(req) {
   try {
@@ -11,7 +12,8 @@ export async function GET(req) {
     const status = searchParams.get("status");
 
     let sql = `
-      SELECT ar.*, u.full_name AS engineer_name, u.initials AS engineer_initials
+      SELECT ar.*, u.full_name AS engineer_name, u.initials AS engineer_initials,
+        EXISTS(SELECT 1 FROM bill_summaries bs WHERE bs.advance_request_id = ar.id) AS has_bill_summary
       FROM advance_requests ar
       JOIN users u ON u.id = ar.engineer_id
     `;
@@ -30,6 +32,7 @@ export async function GET(req) {
     sql += " ORDER BY ar.created_at DESC LIMIT 200";
 
     const { rows } = await query(sql, params);
+    rows.forEach((r) => { r.bill_status = billSubmissionStatus(r.returned_at, r.has_bill_summary); });
     return NextResponse.json({ requests: rows });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: e.status || 500 });

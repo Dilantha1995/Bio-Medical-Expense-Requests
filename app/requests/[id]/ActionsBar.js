@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function ActionsBar({ id, kind, status, session }) {
+export default function ActionsBar({ id, kind, status, session, returnedAt }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -11,8 +11,9 @@ export default function ActionsBar({ id, kind, status, session }) {
   const canCheck = ["approver", "admin"].includes(session.role) && status === "submitted";
   const canApprove = (session.canFinalApprove || session.role === "admin") && status === "checked";
   const canReject = ["approver", "admin"].includes(session.role) && ["submitted", "checked"].includes(status);
+  const canMarkReturned = kind === "requests" && ["approver", "admin"].includes(session.role) && status === "approved";
 
-  async function doAction(action) {
+  async function doAction(action, extra) {
     setBusy(true);
     setError("");
     let reason;
@@ -23,7 +24,7 @@ export default function ActionsBar({ id, kind, status, session }) {
     const res = await fetch(`/api/${kind}/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, reason }),
+      body: JSON.stringify({ action, reason, ...extra }),
     });
     const data = await res.json();
     setBusy(false);
@@ -32,6 +33,12 @@ export default function ActionsBar({ id, kind, status, session }) {
       return;
     }
     router.refresh();
+  }
+
+  function handleMarkReturned() {
+    const input = window.prompt("Date the engineer returned to the office (YYYY-MM-DD):", new Date().toISOString().slice(0, 10));
+    if (!input) return;
+    doAction("mark_returned", { returnedAt: input });
   }
 
   return (
@@ -53,6 +60,12 @@ export default function ActionsBar({ id, kind, status, session }) {
         <button onClick={() => doAction("reject")} disabled={busy}
           className="text-sm bg-red-600 text-white px-3 py-1.5 rounded-md disabled:opacity-50">
           Reject
+        </button>
+      )}
+      {canMarkReturned && (
+        <button onClick={handleMarkReturned} disabled={busy}
+          className="text-sm bg-amber-600 text-white px-3 py-1.5 rounded-md disabled:opacity-50">
+          {returnedAt ? "Update Return Date" : "Mark Returned"}
         </button>
       )}
       <a href={`/api/${kind}/${id}/pdf`} target="_blank" rel="noreferrer"

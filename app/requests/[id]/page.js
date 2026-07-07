@@ -4,6 +4,7 @@ import { getAdvanceRequestById } from "@/lib/data";
 import NavBar from "@/components/NavBar";
 import PrintableForm from "@/components/PrintableForm";
 import ActionsBar from "./ActionsBar";
+import BillStatusBanner from "./BillStatusBanner";
 
 export default async function RequestDetailPage({ params }) {
   const session = await getSession();
@@ -23,8 +24,9 @@ export default async function RequestDetailPage({ params }) {
       <main className="max-w-4xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-4 print:hidden">
           <h1 className="text-xl font-semibold text-brand-navy">Advance Request {record.ref_number}</h1>
-          <ActionsBar id={record.id} kind="requests" status={record.status} session={session} />
+          <ActionsBar id={record.id} kind="requests" status={record.status} session={session} returnedAt={record.returned_at} />
         </div>
+        <BillStatusBanner record={record} />
         <PrintableForm doc={doc} />
       </main>
     </div>
