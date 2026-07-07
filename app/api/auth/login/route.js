@@ -33,6 +33,6 @@ export async function POST(req) {
     });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: "Login failed. Please try again." }, { status: 500 });
+    return NextResponse.json({ error: `Login failed: ${e.message}` }, { status: 500 });
   }
 }
