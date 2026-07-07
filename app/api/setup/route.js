@@ -19,6 +19,7 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const token = searchParams.get("token");
+    const forceReset = searchParams.get("reset") === "true";
 
     if (!process.env.SETUP_SECRET) {
       return NextResponse.json(
@@ -40,10 +41,21 @@ export async function GET(req) {
     const fullName = process.env.ADMIN_NAME || "System Admin";
 
     const existing = await pool.query("SELECT id FROM users WHERE username=$1", [username]);
+
     if (existing.rows.length > 0) {
+      if (!forceReset) {
+        return NextResponse.json({
+          ok: true,
+          message: `Tables are ready. Admin user "${username}" already exists. To reset its password to the current ADMIN_PASSWORD environment variable, visit this URL again with "&reset=true" added to the end.`,
+        });
+      }
+      const hash = await hashPassword(password);
+      await pool.query("UPDATE users SET password_hash=$1, active=true WHERE username=$2", [hash, username]);
       return NextResponse.json({
         ok: true,
-        message: `Tables are ready. Admin user "${username}" already exists — use its existing password to log in.`,
+        message: "Admin password has been reset. Log in with the credentials below, then go to Manage Users to change the password to something only you know.",
+        username,
+        password,
       });
     }
 
