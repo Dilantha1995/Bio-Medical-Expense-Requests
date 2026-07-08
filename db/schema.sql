@@ -79,6 +79,33 @@ ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS returned_at DATE;
 ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS returned_marked_by INTEGER REFERENCES users(id);
 ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS returned_marked_at TIMESTAMPTZ;
 
+-- Which company letterhead/logo the document should be issued under.
+ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS company TEXT NOT NULL DEFAULT 'PSMS';
+ALTER TABLE bill_summaries ADD COLUMN IF NOT EXISTS company TEXT NOT NULL DEFAULT 'PSMS';
+
+-- Self-service profile: photo and signature are stored as small base64 data
+-- URLs (resized client-side before upload) so no separate file storage is
+-- needed. Signatures are stamped onto documents automatically wherever
+-- that person appears as Prepared/Checked/Approved by.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_data TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS signature_data TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;
+
+-- Admin-configurable "Nature of Payment" options for Bill Summary line items.
+CREATE TABLE IF NOT EXISTS nature_of_payment_options (
+  id SERIAL PRIMARY KEY,
+  label TEXT UNIQUE NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- App-wide settings, e.g. display timezone. Single row per key.
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT
+);
+
 -- Permission for non-admin users who are allowed to add/edit machines
 -- (e.g. senior engineers), in addition to admins who always can.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS can_manage_machines BOOLEAN NOT NULL DEFAULT FALSE;

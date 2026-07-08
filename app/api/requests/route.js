@@ -43,7 +43,7 @@ export async function POST(req) {
   try {
     const session = await requireSession();
     const body = await req.json();
-    const { requestDate, destinationLabel, purposeOfTravel, notes, lineItems } = body;
+    const { requestDate, destinationLabel, purposeOfTravel, notes, lineItems, company } = body;
 
     if (!requestDate || !Array.isArray(lineItems) || lineItems.length === 0) {
       return NextResponse.json({ error: "Request date and at least one line item are required." }, { status: 400 });
@@ -51,14 +51,15 @@ export async function POST(req) {
 
     const refNumber = await nextRefNumber("ADV", session.initials);
     const total = grandTotal(lineItems);
+    const companyValue = ["PSMS", "PPM"].includes(company) ? company : "PSMS";
 
     const { rows } = await query(
       `INSERT INTO advance_requests
         (ref_number, engineer_id, request_date, destination_label, purpose_of_travel, notes, line_items, total_amount,
-         status, prepared_by, prepared_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'submitted',$9, now())
+         company, status, prepared_by, prepared_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'submitted',$10, now())
        RETURNING *`,
-      [refNumber, session.id, requestDate, destinationLabel, purposeOfTravel, notes, JSON.stringify(lineItems), total, session.id]
+      [refNumber, session.id, requestDate, destinationLabel, purposeOfTravel, notes, JSON.stringify(lineItems), total, companyValue, session.id]
     );
 
     return NextResponse.json({ request: rows[0] });

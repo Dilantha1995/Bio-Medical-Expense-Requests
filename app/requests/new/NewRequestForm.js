@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import LineItemsTable from "@/components/LineItemsTable";
 import PreviewModal from "@/components/PreviewModal";
 import SubmitActions from "@/components/SubmitActions";
+import CompanySelector from "@/components/CompanySelector";
 import { emptyLineItem } from "@/lib/calc";
 
 function blankState() {
@@ -14,6 +15,7 @@ function blankState() {
     purposeOfTravel: "",
     notes: "",
     items: [emptyLineItem()],
+    company: "PSMS",
   };
 }
 
@@ -51,6 +53,7 @@ export default function NewRequestForm() {
           purposeOfTravel: form.purposeOfTravel,
           notes: form.notes,
           lineItems: form.items,
+          company: form.company,
         }),
       });
       const data = await res.json();
@@ -99,6 +102,9 @@ export default function NewRequestForm() {
             className="w-full border rounded-md px-3 py-2 text-sm" />
         </div>
         <div className="sm:col-span-3">
+          <CompanySelector value={form.company} onChange={(v) => set("company", v)} />
+        </div>
+        <div className="sm:col-span-3">
           <label className="block text-sm font-medium text-gray-700 mb-1">Purpose of Travel</label>
           <input value={form.purposeOfTravel} onChange={(e) => set("purposeOfTravel", e.target.value)}
             placeholder='e.g. "Vitros 350 Service Call"'
@@ -131,6 +137,7 @@ export default function NewRequestForm() {
           title="Travel Advance Request — Preview"
           meta={[
             ["Date", form.requestDate],
+            ["Company", form.company],
             ["Trip summary", form.destinationLabel],
             ["Purpose of Travel", form.purposeOfTravel],
             ["Notes", form.notes],

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { nextRefNumber } from "@/lib/refnumber";
-import { grandTotal } from "@/lib/calc";
+import { billGrandTotal } from "@/lib/billCalc";
 
 export async function GET(req) {
   try {
@@ -39,7 +39,7 @@ export async function POST(req) {
   try {
     const session = await requireSession();
     const body = await req.json();
-    const { summaryDate, destinationLabel, purposeOfTravel, notes, lineItems, advanceRequestId, advanceReceived } = body;
+    const { summaryDate, destinationLabel, purposeOfTravel, notes, lineItems, advanceRequestId, advanceReceived, company } = body;
 
     if (!summaryDate || !Array.isArray(lineItems) || lineItems.length === 0) {
       return NextResponse.json({ error: "Summary date and at least one line item are required." }, { status: 400 });
@@ -53,18 +53,19 @@ export async function POST(req) {
     }
 
     const refNumber = await nextRefNumber("BM", session.initials);
-    const total = grandTotal(lineItems);
+    const total = billGrandTotal(lineItems);
     const advReceived = parseFloat(advanceReceived) || 0;
     const balance = total - advReceived;
+    const companyValue = ["PSMS", "PPM"].includes(company) ? company : "PSMS";
 
     const { rows } = await query(
       `INSERT INTO bill_summaries
         (ref_number, engineer_id, advance_request_id, summary_date, destination_label, purpose_of_travel, notes,
-         line_items, total_amount, advance_received, balance_due, status, prepared_by, prepared_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'submitted',$12, now())
+         line_items, total_amount, advance_received, balance_due, company, status, prepared_by, prepared_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'submitted',$13, now())
        RETURNING *`,
       [refNumber, session.id, advanceRequestId || null, summaryDate, destinationLabel, purposeOfTravel, notes,
-        JSON.stringify(lineItems), total, advReceived, balance, session.id]
+        JSON.stringify(lineItems), total, advReceived, balance, companyValue, session.id]
     );
 
     return NextResponse.json({ bill: rows[0] });

@@ -32,6 +32,15 @@ function StatusBadge({ status }) {
   );
 }
 
+function BillStatusBadge({ status }) {
+  if (!status) return null;
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${BILL_STATUS_STYLES[status] || ""}`}>
+      {BILL_STATUS_LABELS[status] || status}
+    </span>
+  );
+}
+
 export default function DashboardClient({ role }) {
   const [requests, setRequests] = useState([]);
   const [bills, setBills] = useState([]);
@@ -52,15 +61,15 @@ export default function DashboardClient({ role }) {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-xl font-semibold text-brand-navy">
           {role === "engineer" ? "My Travel Forms" : "All Travel Forms"}
         </h1>
         <div className="flex gap-2">
-          <Link href="/requests/new" className="text-sm bg-brand-navy text-white px-3 py-1.5 rounded-md">
+          <Link href="/requests/new" className="flex-1 sm:flex-none text-center text-sm bg-brand-navy text-white px-3 py-2 sm:py-1.5 rounded-md">
             + Advance Request
           </Link>
-          <Link href="/bills/new" className="text-sm bg-brand-teal text-white px-3 py-1.5 rounded-md">
+          <Link href="/bills/new" className="flex-1 sm:flex-none text-center text-sm bg-brand-teal text-white px-3 py-2 sm:py-1.5 rounded-md">
             + Bill Summary
           </Link>
         </div>
@@ -72,7 +81,32 @@ export default function DashboardClient({ role }) {
         <>
           <section>
             <h2 className="text-sm font-semibold text-gray-600 mb-2">Travel Advance Requests</h2>
-            <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
+
+            {/* Mobile: cards */}
+            <div className="sm:hidden space-y-2">
+              {requests.length === 0 && (
+                <p className="bg-white rounded-lg shadow-sm p-4 text-center text-gray-400 text-sm">No advance requests yet.</p>
+              )}
+              {requests.map((r) => (
+                <Link key={r.id} href={`/requests/${r.id}`} className="block bg-white rounded-lg shadow-sm p-3 active:bg-gray-50">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-brand-navy font-medium text-sm">{r.ref_number}</span>
+                    <StatusBadge status={r.status} />
+                  </div>
+                  <div className="text-sm text-gray-600">{r.engineer_name} · {r.destination_label}</div>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-xs text-gray-400">{new Date(r.request_date).toLocaleDateString()}</span>
+                    <span className="text-sm font-medium">{formatMVR(r.total_amount)} MVR</span>
+                  </div>
+                  {r.status === "approved" && (
+                    <div className="mt-2"><BillStatusBadge status={r.bill_status} /></div>
+                  )}
+                </Link>
+              ))}
+            </div>
+
+            {/* Tablet+: table */}
+            <div className="hidden sm:block bg-white rounded-lg shadow-sm overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="text-left text-gray-500 border-b">
@@ -100,11 +134,7 @@ export default function DashboardClient({ role }) {
                       <td className="p-3 text-right">{formatMVR(r.total_amount)}</td>
                       <td className="p-3"><StatusBadge status={r.status} /></td>
                       <td className="p-3">
-                        {r.status === "approved" && (
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${BILL_STATUS_STYLES[r.bill_status] || ""}`}>
-                            {BILL_STATUS_LABELS[r.bill_status] || r.bill_status}
-                          </span>
-                        )}
+                        {r.status === "approved" && <BillStatusBadge status={r.bill_status} />}
                       </td>
                     </tr>
                   ))}
@@ -115,7 +145,30 @@ export default function DashboardClient({ role }) {
 
           <section>
             <h2 className="text-sm font-semibold text-gray-600 mb-2">Bill Summaries</h2>
-            <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
+
+            {/* Mobile: cards */}
+            <div className="sm:hidden space-y-2">
+              {bills.length === 0 && (
+                <p className="bg-white rounded-lg shadow-sm p-4 text-center text-gray-400 text-sm">No bill summaries yet.</p>
+              )}
+              {bills.map((b) => (
+                <Link key={b.id} href={`/bills/${b.id}`} className="block bg-white rounded-lg shadow-sm p-3 active:bg-gray-50">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-brand-navy font-medium text-sm">{b.ref_number}</span>
+                    <StatusBadge status={b.status} />
+                  </div>
+                  <div className="text-sm text-gray-600">{b.engineer_name} · {b.destination_label}</div>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-xs text-gray-400">{new Date(b.summary_date).toLocaleDateString()}</span>
+                    <span className="text-sm font-medium">{formatMVR(b.total_amount)} MVR</span>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">Balance: {formatMVR(b.balance_due)} MVR</div>
+                </Link>
+              ))}
+            </div>
+
+            {/* Tablet+: table */}
+            <div className="hidden sm:block bg-white rounded-lg shadow-sm overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="text-left text-gray-500 border-b">

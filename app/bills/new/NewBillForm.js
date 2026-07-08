@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import LineItemsTable from "@/components/LineItemsTable";
-import PreviewModal from "@/components/PreviewModal";
+import BillLineItemsTable from "@/components/BillLineItemsTable";
+import BillPreviewModal from "@/components/BillPreviewModal";
 import SubmitActions from "@/components/SubmitActions";
-import { emptyLineItem } from "@/lib/calc";
+import CompanySelector from "@/components/CompanySelector";
+import { emptyBillItem } from "@/lib/billCalc";
 
 function blankState() {
   return {
@@ -13,9 +14,10 @@ function blankState() {
     destinationLabel: "",
     purposeOfTravel: "",
     notes: "",
-    items: [emptyLineItem()],
+    items: [emptyBillItem()],
     advanceRequestId: "",
     advanceReceived: "",
+    company: "PSMS",
   };
 }
 
@@ -57,6 +59,7 @@ export default function NewBillForm() {
               advanceReceived: found.total_amount,
               destinationLabel: found.destination_label || "",
               purposeOfTravel: found.purpose_of_travel || "",
+              company: found.company || "PSMS",
             }));
           }
         }
@@ -73,6 +76,7 @@ export default function NewBillForm() {
         advanceReceived: found.total_amount,
         destinationLabel: found.destination_label || "",
         purposeOfTravel: found.purpose_of_travel || "",
+        company: found.company || "PSMS",
       }));
     }
   }
@@ -93,6 +97,7 @@ export default function NewBillForm() {
           lineItems: form.items,
           advanceRequestId: form.advanceRequestId || null,
           advanceReceived: form.advanceReceived,
+          company: form.company,
         }),
       });
       const data = await res.json();
@@ -141,6 +146,9 @@ export default function NewBillForm() {
             className="w-full border rounded-md px-3 py-2 text-sm" />
         </div>
         <div className="sm:col-span-3">
+          <CompanySelector value={form.company} onChange={(v) => set("company", v)} />
+        </div>
+        <div className="sm:col-span-3">
           <label className="block text-sm font-medium text-gray-700 mb-1">Related Advance Request</label>
           <select value={form.advanceRequestId} onChange={(e) => handlePickAdvance(e.target.value)}
             className="w-full border rounded-md px-3 py-2 text-sm">
@@ -168,9 +176,9 @@ export default function NewBillForm() {
       </div>
 
       <div className="bg-white p-4 rounded-lg shadow-sm">
-        <h2 className="text-sm font-semibold text-gray-600 mb-2">Trip Locations &amp; Actual Expenses</h2>
-        <p className="text-xs text-gray-400 mb-2">Add one row per island/leg. Attach the original bills/receipts separately per your SOP.</p>
-        <LineItemsTable items={form.items} onChange={(items) => set("items", items)} />
+        <h2 className="text-sm font-semibold text-gray-600 mb-2">Bills</h2>
+        <p className="text-xs text-gray-400 mb-2">One row per bill/receipt. Attach the original bills/receipts separately per your SOP.</p>
+        <BillLineItemsTable items={form.items} onChange={(items) => set("items", items)} />
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -183,10 +191,11 @@ export default function NewBillForm() {
       />
 
       {showPreview && (
-        <PreviewModal
+        <BillPreviewModal
           title="Bill Summary — Preview"
           meta={[
             ["Date", form.summaryDate],
+            ["Company", form.company],
             ["Destination", form.destinationLabel],
             ["Purpose of Travel", form.purposeOfTravel],
             ["Advance Received", form.advanceReceived ? `MVR ${form.advanceReceived}` : "-"],

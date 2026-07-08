@@ -153,7 +153,27 @@ export default function MachinesClient({ session }) {
         <button type="submit" className="text-sm border rounded-md px-4">Search</button>
       </form>
 
-      <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
+      {/* Mobile: cards */}
+      <div className="sm:hidden space-y-2">
+        {loading && <p className="bg-white rounded-lg shadow-sm p-4 text-center text-gray-400 text-sm">Loading...</p>}
+        {!loading && machines.length === 0 && (
+          <p className="bg-white rounded-lg shadow-sm p-4 text-center text-gray-400 text-sm">No machines yet.</p>
+        )}
+        {machines.map((m) => (
+          <div key={m.id} className="bg-white rounded-lg shadow-sm p-3">
+            <div className="font-medium text-sm">{m.name}{m.model ? ` (${m.model})` : ""}</div>
+            <div className="font-mono text-xs text-gray-500 mt-0.5">{m.serial_number}</div>
+            <div className="text-sm text-gray-600 mt-1">{m.facility_name}{m.facility_name && m.location_label ? " · " : ""}{m.location_label}</div>
+            <div className="flex items-center justify-between mt-1 text-xs text-gray-400">
+              <span>{m.category}</span>
+              <span>{m.install_date ? new Date(m.install_date).toLocaleDateString() : ""}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Tablet+: table */}
+      <div className="hidden sm:block bg-white rounded-lg shadow-sm overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
             <tr className="text-left text-gray-500 border-b">

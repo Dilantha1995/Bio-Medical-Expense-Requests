@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
-const PROTECTED_PREFIXES = ["/dashboard", "/requests", "/bills", "/admin", "/machines", "/pm"];
-const ADMIN_ONLY_PREFIXES = ["/admin", "/pm/fields", "/pm/rules"];
+const PROTECTED_PREFIXES = ["/dashboard", "/requests", "/bills", "/admin", "/machines", "/pm", "/profile", "/configure"];
+const ADMIN_ONLY_PREFIXES = ["/admin", "/pm/fields", "/pm/rules", "/configure"];
 
 export async function middleware(req) {
   const { pathname } = req.nextUrl;
@@ -29,5 +29,5 @@ export async function middleware(req) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/requests/:path*", "/bills/:path*", "/admin/:path*", "/machines/:path*", "/pm/:path*"],
+  matcher: ["/dashboard/:path*", "/requests/:path*", "/bills/:path*", "/admin/:path*", "/machines/:path*", "/pm/:path*", "/profile/:path*", "/configure/:path*"],
 };

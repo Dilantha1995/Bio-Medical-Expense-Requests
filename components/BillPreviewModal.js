@@ -1,8 +1,9 @@
 "use client";
 
-import { lineItemTotal, grandTotal, formatMVR } from "@/lib/calc";
+import { billItemTotal, billGrandTotal } from "@/lib/billCalc";
+import { formatMVR } from "@/lib/calc";
 
-export default function PreviewModal({ title, meta, items, onClose }) {
+export default function BillPreviewModal({ title, meta, items, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-2 sm:p-4" onClick={onClose}>
       <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-auto p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
@@ -22,28 +23,30 @@ export default function PreviewModal({ title, meta, items, onClose }) {
           <table className="min-w-full text-xs">
             <thead className="bg-gray-50">
               <tr>
-                <th className="p-2 text-left">#</th>
-                <th className="p-2 text-left">From</th>
-                <th className="p-2 text-left">To</th>
-                <th className="p-2 text-left">Mode</th>
-                <th className="p-2 text-right">Total</th>
+                <th className="p-2 text-left">Srn</th>
+                <th className="p-2 text-left">Description</th>
+                <th className="p-2 text-left">Bill No.</th>
+                <th className="p-2 text-left">Nature of Payment</th>
+                <th className="p-2 text-left">Supporting Docs</th>
+                <th className="p-2 text-right">Amount</th>
               </tr>
             </thead>
             <tbody>
               {items.map((it, i) => (
                 <tr key={i} className="border-t">
                   <td className="p-2">{i + 1}</td>
-                  <td className="p-2">{it.fromLocation} ({it.fromDate})</td>
-                  <td className="p-2">{it.toLocation} ({it.toDate})</td>
-                  <td className="p-2">{it.mode}</td>
-                  <td className="p-2 text-right">{formatMVR(lineItemTotal(it))}</td>
+                  <td className="p-2">{it.description}</td>
+                  <td className="p-2">{it.billNo}</td>
+                  <td className="p-2">{it.natureOfPayment}</td>
+                  <td className="p-2">{it.supportingDocs}</td>
+                  <td className="p-2 text-right">{formatMVR(billItemTotal(it))}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
               <tr className="border-t font-semibold">
-                <td colSpan={4} className="p-2 text-right">TOTAL</td>
-                <td className="p-2 text-right">{formatMVR(grandTotal(items))}</td>
+                <td colSpan={5} className="p-2 text-right">TOTAL</td>
+                <td className="p-2 text-right">{formatMVR(billGrandTotal(items))}</td>
               </tr>
             </tfoot>
           </table>
