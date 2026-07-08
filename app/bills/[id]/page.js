@@ -24,9 +24,9 @@ export default async function BillDetailPage({ params }) {
       <main className="max-w-4xl mx-auto px-4 py-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 print:hidden">
           <h1 className="text-lg sm:text-xl font-semibold text-brand-navy break-all">Bill Summary {record.ref_number}</h1>
-          <ActionsBar id={record.id} kind="bills" status={record.status} session={session} />
+          <ActionsBar id={record.id} kind="bills" status={record.status} session={session} paymentStatus={record.payment_status} />
         </div>
-        <PrintableForm doc={doc} timezone={appSettings.timezone} />
+        <PrintableForm doc={doc} timezone={appSettings.timezone} currency={appSettings.currency} />
       </main>
     </div>
   );

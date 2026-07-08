@@ -35,7 +35,7 @@ export async function GET(req, { params }) {
     const companyName = COMPANY_NAMES[record.company] || COMPANY_NAMES.PSMS;
 
     const buffer = await renderToBuffer(
-      React.createElement(BillFormPDF, { doc, companyLogoBase64: companyLogo, companyName, timezone: appSettings.timezone })
+      React.createElement(BillFormPDF, { doc, companyLogoBase64: companyLogo, companyName, timezone: appSettings.timezone, currency: appSettings.currency })
     );
 
     return new Response(buffer, {

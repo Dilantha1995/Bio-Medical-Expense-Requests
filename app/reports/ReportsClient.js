@@ -33,6 +33,11 @@ export default function ReportsClient({ session }) {
   const [engineers, setEngineers] = useState([]);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [currency, setCurrency] = useState("MVR");
+
+  useEffect(() => {
+    fetch("/api/config/settings").then((r) => r.json()).then((d) => setCurrency(d.settings?.currency || "MVR"));
+  }, []);
 
   useEffect(() => {
     if (canFilterAll) {
@@ -68,7 +73,7 @@ export default function ReportsClient({ session }) {
         { label: "Date", value: (r) => new Date(r.request_date).toLocaleDateString() },
         { label: "Company", value: (r) => r.company },
         { label: "Destination", value: (r) => r.destination_label },
-        { label: "Total (MVR)", value: (r) => r.total_amount },
+        { label: `Total (${currency})`, value: (r) => r.total_amount },
         { label: "Status", value: (r) => r.status },
         { label: "Bill Status", value: (r) => r.bill_status },
       ]);
@@ -79,7 +84,7 @@ export default function ReportsClient({ session }) {
         { label: "Date", value: (r) => new Date(r.summary_date).toLocaleDateString() },
         { label: "Company", value: (r) => r.company },
         { label: "Destination", value: (r) => r.destination_label },
-        { label: "Total (MVR)", value: (r) => r.total_amount },
+        { label: `Total (${currency})`, value: (r) => r.total_amount },
         { label: "Advance Received", value: (r) => r.advance_received },
         { label: "Balance", value: (r) => r.balance_due },
         { label: "Status", value: (r) => r.status },
@@ -156,7 +161,7 @@ export default function ReportsClient({ session }) {
         </div>
         <div>
           <p className="text-xs text-gray-500">Total Amount</p>
-          <p className="text-lg font-semibold">MVR {formatMVR(totalAmount)}</p>
+          <p className="text-lg font-semibold">{currency} {formatMVR(totalAmount)}</p>
         </div>
       </div>
 
@@ -169,7 +174,7 @@ export default function ReportsClient({ session }) {
               <th className="p-3">Date</th>
               <th className="p-3">Company</th>
               <th className="p-3">Destination</th>
-              <th className="p-3 text-right">Total (MVR)</th>
+              <th className="p-3 text-right">Total ({currency})</th>
               <th className="p-3">Status</th>
             </tr>
           </thead>

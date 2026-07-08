@@ -9,11 +9,12 @@ const ROLES = [
 ];
 
 function emptyForm() {
-  return { username: "", password: "", fullName: "", initials: "", designation: "Biomedical Engineer", role: "engineer", canFinalApprove: false, canManageMachines: false, canAccessPmDashboard: false };
+  return { username: "", password: "", fullName: "", initials: "", designation: "", role: "engineer", canFinalApprove: false, canManageMachines: false, canAccessPmDashboard: false, canProcessPayments: false };
 }
 
 export default function AdminUsersClient() {
   const [users, setUsers] = useState([]);
+  const [designations, setDesignations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyForm());
   const [error, setError] = useState("");
@@ -21,9 +22,11 @@ export default function AdminUsersClient() {
 
   async function load() {
     setLoading(true);
-    const res = await fetch("/api/admin/users");
-    const data = await res.json();
-    setUsers(data.users || []);
+    const [uRes, dRes] = await Promise.all([fetch("/api/admin/users"), fetch("/api/config/designations")]);
+    const uData = await uRes.json();
+    const dData = await dRes.json();
+    setUsers(uData.users || []);
+    setDesignations(dData.options || []);
     setLoading(false);
   }
 
@@ -76,8 +79,14 @@ export default function AdminUsersClient() {
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Designation</label>
-          <input value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })}
-            className="w-full border rounded-md px-3 py-2 text-sm" />
+          <select value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })}
+            className="w-full border rounded-md px-3 py-2 text-sm">
+            <option value="">-- select --</option>
+            {designations.map((d) => <option key={d.id} value={d.label}>{d.label}</option>)}
+          </select>
+          {designations.length === 0 && (
+            <p className="text-[11px] text-gray-400 mt-1">No designations set up yet — add some in Configure.</p>
+          )}
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Username</label>
@@ -116,6 +125,11 @@ export default function AdminUsersClient() {
             onChange={(e) => setForm({ ...form, canAccessPmDashboard: e.target.checked })} />
           <label htmlFor="capd" className="text-sm text-gray-600">Can access the PM &amp; Installation Schedule dashboard</label>
         </div>
+        <div className="flex items-center gap-2 sm:col-span-3">
+          <input type="checkbox" id="cpp" checked={form.canProcessPayments}
+            onChange={(e) => setForm({ ...form, canProcessPayments: e.target.checked })} />
+          <label htmlFor="cpp" className="text-sm text-gray-600">Can process payments (accounts/finance team)</label>
+        </div>
         {error && <p className="text-sm text-red-600 sm:col-span-3">{error}</p>}
         <div className="sm:col-span-3">
           <button type="submit" disabled={saving}
@@ -136,15 +150,16 @@ export default function AdminUsersClient() {
               <th className="p-3">Final Approver</th>
               <th className="p-3">Manage Machines</th>
               <th className="p-3">PM Access</th>
+              <th className="p-3">Payment Access</th>
               <th className="p-3">Active</th>
               <th className="p-3">Password</th>
               <th className="p-3">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={10} className="p-4 text-center text-gray-400">Loading...</td></tr>}
+            {loading && <tr><td colSpan={11} className="p-4 text-center text-gray-400">Loading...</td></tr>}
             {!loading && users.length === 0 && (
-              <tr><td colSpan={10} className="p-4 text-center text-gray-400">No users yet.</td></tr>
+              <tr><td colSpan={11} className="p-4 text-center text-gray-400">No users yet.</td></tr>
             )}
             {users.map((u) => (
               <tr key={u.id} className="border-b last:border-0">
@@ -168,6 +183,10 @@ export default function AdminUsersClient() {
                 <td className="p-3">
                   <input type="checkbox" checked={u.can_access_pm_dashboard}
                     onChange={(e) => updateUser(u.id, { canAccessPmDashboard: e.target.checked })} />
+                </td>
+                <td className="p-3">
+                  <input type="checkbox" checked={u.can_process_payments}
+                    onChange={(e) => updateUser(u.id, { canProcessPayments: e.target.checked })} />
                 </td>
                 <td className="p-3">
                   <input type="checkbox" checked={u.active}

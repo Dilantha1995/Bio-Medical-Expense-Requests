@@ -6,7 +6,7 @@ export async function PATCH(req, { params }) {
   try {
     await requireRole("admin");
     const body = await req.json();
-    const { active, role, canFinalApprove, canManageMachines, canAccessPmDashboard, newPassword, designation, fullName } = body;
+    const { active, role, canFinalApprove, canManageMachines, canAccessPmDashboard, canProcessPayments, newPassword, designation, fullName } = body;
 
     const sets = [];
     const values = [];
@@ -17,6 +17,7 @@ export async function PATCH(req, { params }) {
     if (typeof canFinalApprove === "boolean") { sets.push(`can_final_approve=$${i++}`); values.push(canFinalApprove); }
     if (typeof canManageMachines === "boolean") { sets.push(`can_manage_machines=$${i++}`); values.push(canManageMachines); }
     if (typeof canAccessPmDashboard === "boolean") { sets.push(`can_access_pm_dashboard=$${i++}`); values.push(canAccessPmDashboard); }
+    if (typeof canProcessPayments === "boolean") { sets.push(`can_process_payments=$${i++}`); values.push(canProcessPayments); }
     if (designation !== undefined) { sets.push(`designation=$${i++}`); values.push(designation); }
     if (fullName) { sets.push(`full_name=$${i++}`); values.push(fullName); }
     if (newPassword) {
@@ -36,7 +37,7 @@ export async function PATCH(req, { params }) {
     values.push(params.id);
     const { rows } = await query(
       `UPDATE users SET ${sets.join(", ")} WHERE id=$${i}
-       RETURNING id, username, full_name, initials, designation, role, can_final_approve, can_manage_machines, can_access_pm_dashboard, must_change_password, active`,
+       RETURNING id, username, full_name, initials, designation, role, can_final_approve, can_manage_machines, can_access_pm_dashboard, can_process_payments, must_change_password, active`,
       values
     );
 

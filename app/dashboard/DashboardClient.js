@@ -24,6 +24,15 @@ const BILL_STATUS_LABELS = {
   submitted: "Bill submitted",
 };
 
+const PAYMENT_STYLES = {
+  processing: "bg-purple-100 text-purple-700",
+  processed: "bg-purple-200 text-purple-800",
+};
+const PAYMENT_LABELS = {
+  processing: "Payment processing",
+  processed: "Payment processed",
+};
+
 function StatusBadge({ status }) {
   return (
     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[status] || "bg-gray-100 text-gray-700"}`}>
@@ -41,19 +50,35 @@ function BillStatusBadge({ status }) {
   );
 }
 
+function PaymentBadge({ status }) {
+  if (!status) return null;
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${PAYMENT_STYLES[status] || ""}`}>
+      {PAYMENT_LABELS[status] || status}
+    </span>
+  );
+}
+
+function DeletedBadge() {
+  return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Deleted</span>;
+}
+
 export default function DashboardClient({ role }) {
   const [requests, setRequests] = useState([]);
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currency, setCurrency] = useState("MVR");
 
   async function load() {
     setLoading(true);
-    const [r1, r2] = await Promise.all([
+    const [r1, r2, r3] = await Promise.all([
       fetch("/api/requests").then((r) => r.json()),
       fetch("/api/bills").then((r) => r.json()),
+      fetch("/api/config/settings").then((r) => r.json()),
     ]);
     setRequests(r1.requests || []);
     setBills(r2.bills || []);
+    setCurrency(r3.settings?.currency || "MVR");
     setLoading(false);
   }
 
@@ -88,19 +113,23 @@ export default function DashboardClient({ role }) {
                 <p className="bg-white rounded-lg shadow-sm p-4 text-center text-gray-400 text-sm">No advance requests yet.</p>
               )}
               {requests.map((r) => (
-                <Link key={r.id} href={`/requests/${r.id}`} className="block bg-white rounded-lg shadow-sm p-3 active:bg-gray-50">
-                  <div className="flex items-center justify-between mb-1">
+                <Link key={r.id} href={`/requests/${r.id}`} className={`block bg-white rounded-lg shadow-sm p-3 active:bg-gray-50 ${r.deleted_at ? "opacity-60" : ""}`}>
+                  <div className="flex items-center justify-between mb-1 gap-1 flex-wrap">
                     <span className="text-brand-navy font-medium text-sm">{r.ref_number}</span>
-                    <StatusBadge status={r.status} />
+                    <div className="flex gap-1">
+                      {r.deleted_at && <DeletedBadge />}
+                      <StatusBadge status={r.status} />
+                    </div>
                   </div>
                   <div className="text-sm text-gray-600">{r.engineer_name} · {r.destination_label}</div>
                   <div className="flex items-center justify-between mt-1">
                     <span className="text-xs text-gray-400">{new Date(r.request_date).toLocaleDateString()}</span>
-                    <span className="text-sm font-medium">{formatMVR(r.total_amount)} MVR</span>
+                    <span className="text-sm font-medium">{formatMVR(r.total_amount)} {currency}</span>
                   </div>
-                  {r.status === "approved" && (
-                    <div className="mt-2"><BillStatusBadge status={r.bill_status} /></div>
-                  )}
+                  <div className="flex gap-1 mt-2 flex-wrap">
+                    {r.status === "approved" && <BillStatusBadge status={r.bill_status} />}
+                    {r.payment_status && <PaymentBadge status={r.payment_status} />}
+                  </div>
                 </Link>
               ))}
             </div>
@@ -114,17 +143,18 @@ export default function DashboardClient({ role }) {
                     <th className="p-3">Engineer</th>
                     <th className="p-3">Date</th>
                     <th className="p-3">Destination</th>
-                    <th className="p-3 text-right">Total (MVR)</th>
+                    <th className="p-3 text-right">Total ({currency})</th>
                     <th className="p-3">Status</th>
                     <th className="p-3">Bill Summary</th>
+                    <th className="p-3">Payment</th>
                   </tr>
                 </thead>
                 <tbody>
                   {requests.length === 0 && (
-                    <tr><td colSpan={7} className="p-4 text-center text-gray-400">No advance requests yet.</td></tr>
+                    <tr><td colSpan={8} className="p-4 text-center text-gray-400">No advance requests yet.</td></tr>
                   )}
                   {requests.map((r) => (
-                    <tr key={r.id} className="border-b last:border-0 hover:bg-gray-50">
+                    <tr key={r.id} className={`border-b last:border-0 hover:bg-gray-50 ${r.deleted_at ? "opacity-60" : ""}`}>
                       <td className="p-3">
                         <Link href={`/requests/${r.id}`} className="text-brand-navy hover:underline">{r.ref_number}</Link>
                       </td>
@@ -132,10 +162,16 @@ export default function DashboardClient({ role }) {
                       <td className="p-3">{new Date(r.request_date).toLocaleDateString()}</td>
                       <td className="p-3">{r.destination_label}</td>
                       <td className="p-3 text-right">{formatMVR(r.total_amount)}</td>
-                      <td className="p-3"><StatusBadge status={r.status} /></td>
+                      <td className="p-3">
+                        <div className="flex gap-1 flex-wrap">
+                          {r.deleted_at && <DeletedBadge />}
+                          <StatusBadge status={r.status} />
+                        </div>
+                      </td>
                       <td className="p-3">
                         {r.status === "approved" && <BillStatusBadge status={r.bill_status} />}
                       </td>
+                      <td className="p-3"><PaymentBadge status={r.payment_status} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -152,17 +188,21 @@ export default function DashboardClient({ role }) {
                 <p className="bg-white rounded-lg shadow-sm p-4 text-center text-gray-400 text-sm">No bill summaries yet.</p>
               )}
               {bills.map((b) => (
-                <Link key={b.id} href={`/bills/${b.id}`} className="block bg-white rounded-lg shadow-sm p-3 active:bg-gray-50">
-                  <div className="flex items-center justify-between mb-1">
+                <Link key={b.id} href={`/bills/${b.id}`} className={`block bg-white rounded-lg shadow-sm p-3 active:bg-gray-50 ${b.deleted_at ? "opacity-60" : ""}`}>
+                  <div className="flex items-center justify-between mb-1 gap-1 flex-wrap">
                     <span className="text-brand-navy font-medium text-sm">{b.ref_number}</span>
-                    <StatusBadge status={b.status} />
+                    <div className="flex gap-1">
+                      {b.deleted_at && <DeletedBadge />}
+                      <StatusBadge status={b.status} />
+                    </div>
                   </div>
                   <div className="text-sm text-gray-600">{b.engineer_name} · {b.destination_label}</div>
                   <div className="flex items-center justify-between mt-1">
                     <span className="text-xs text-gray-400">{new Date(b.summary_date).toLocaleDateString()}</span>
-                    <span className="text-sm font-medium">{formatMVR(b.total_amount)} MVR</span>
+                    <span className="text-sm font-medium">{formatMVR(b.total_amount)} {currency}</span>
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">Balance: {formatMVR(b.balance_due)} MVR</div>
+                  <div className="text-xs text-gray-500 mt-1">Balance: {formatMVR(b.balance_due)} {currency}</div>
+                  {b.payment_status && <div className="mt-2"><PaymentBadge status={b.payment_status} /></div>}
                 </Link>
               ))}
             </div>
@@ -176,17 +216,18 @@ export default function DashboardClient({ role }) {
                     <th className="p-3">Engineer</th>
                     <th className="p-3">Date</th>
                     <th className="p-3">Destination</th>
-                    <th className="p-3 text-right">Total (MVR)</th>
+                    <th className="p-3 text-right">Total ({currency})</th>
                     <th className="p-3 text-right">Balance</th>
                     <th className="p-3">Status</th>
+                    <th className="p-3">Payment</th>
                   </tr>
                 </thead>
                 <tbody>
                   {bills.length === 0 && (
-                    <tr><td colSpan={7} className="p-4 text-center text-gray-400">No bill summaries yet.</td></tr>
+                    <tr><td colSpan={8} className="p-4 text-center text-gray-400">No bill summaries yet.</td></tr>
                   )}
                   {bills.map((b) => (
-                    <tr key={b.id} className="border-b last:border-0 hover:bg-gray-50">
+                    <tr key={b.id} className={`border-b last:border-0 hover:bg-gray-50 ${b.deleted_at ? "opacity-60" : ""}`}>
                       <td className="p-3">
                         <Link href={`/bills/${b.id}`} className="text-brand-navy hover:underline">{b.ref_number}</Link>
                       </td>
@@ -195,7 +236,13 @@ export default function DashboardClient({ role }) {
                       <td className="p-3">{b.destination_label}</td>
                       <td className="p-3 text-right">{formatMVR(b.total_amount)}</td>
                       <td className="p-3 text-right">{formatMVR(b.balance_due)}</td>
-                      <td className="p-3"><StatusBadge status={b.status} /></td>
+                      <td className="p-3">
+                        <div className="flex gap-1 flex-wrap">
+                          {b.deleted_at && <DeletedBadge />}
+                          <StatusBadge status={b.status} />
+                        </div>
+                      </td>
+                      <td className="p-3"><PaymentBadge status={b.payment_status} /></td>
                     </tr>
                   ))}
                 </tbody>

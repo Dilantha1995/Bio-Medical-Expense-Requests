@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import NotificationBell from "./NotificationBell";
 
 export default function NavBar({ fullName, role, canAccessPmDashboard }) {
   const router = useRouter();
@@ -53,7 +54,8 @@ export default function NavBar({ fullName, role, canAccessPmDashboard }) {
           ))}
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <NotificationBell />
           <span className="text-sm text-gray-500 hidden md:inline">{fullName}</span>
           <button onClick={handleLogout} className="hidden md:inline text-sm text-brand-red hover:underline">
             Log out

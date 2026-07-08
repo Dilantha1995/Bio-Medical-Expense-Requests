@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/auth";
 import { nextRefNumber } from "@/lib/refnumber";
 import { grandTotal } from "@/lib/calc";
 import { billSubmissionStatus } from "@/lib/workingDays";
+import { notifyMany, getCheckerIds } from "@/lib/notifications";
 
 export async function GET(req) {
   try {
@@ -81,7 +82,11 @@ export async function POST(req) {
       [refNumber, session.id, requestDate, destinationLabel, purposeOfTravel, notes, JSON.stringify(lineItems), total, companyValue, session.id]
     );
 
-    return NextResponse.json({ request: rows[0] });
+    const created = rows[0];
+    const checkerIds = await getCheckerIds();
+    await notifyMany(checkerIds, "New advance request submitted", `${created.ref_number} (${session.fullName}) needs checking.`, `/requests/${created.id}`);
+
+    return NextResponse.json({ request: created });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: e.message || "Failed to create request." }, { status: e.status || 500 });

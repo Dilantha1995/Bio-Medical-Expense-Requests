@@ -3,6 +3,7 @@ import { query } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { nextRefNumber } from "@/lib/refnumber";
 import { billGrandTotal } from "@/lib/billCalc";
+import { notifyMany, getCheckerIds } from "@/lib/notifications";
 
 export async function GET(req) {
   try {
@@ -87,7 +88,11 @@ export async function POST(req) {
         JSON.stringify(lineItems), total, advReceived, balance, companyValue, session.id]
     );
 
-    return NextResponse.json({ bill: rows[0] });
+    const created = rows[0];
+    const checkerIds = await getCheckerIds();
+    await notifyMany(checkerIds, "New bill summary submitted", `${created.ref_number} (${session.fullName}) needs checking.`, `/bills/${created.id}`);
+
+    return NextResponse.json({ bill: created });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: e.message || "Failed to create bill summary." }, { status: e.status || 500 });

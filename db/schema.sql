@@ -95,6 +95,54 @@ ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS returned_marked_at TIMESTA
 ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS company TEXT NOT NULL DEFAULT 'PSMS';
 ALTER TABLE bill_summaries ADD COLUMN IF NOT EXISTS company TEXT NOT NULL DEFAULT 'PSMS';
 
+-- Soft delete: admin can remove an entry, but its reference number is never
+-- reused and it still shows in its original sequence position, marked as
+-- deleted, with who deleted it and why (audit trail).
+ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS deleted_by INTEGER REFERENCES users(id);
+ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS deletion_reason TEXT;
+ALTER TABLE bill_summaries ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE bill_summaries ADD COLUMN IF NOT EXISTS deleted_by INTEGER REFERENCES users(id);
+ALTER TABLE bill_summaries ADD COLUMN IF NOT EXISTS deletion_reason TEXT;
+
+-- Payment processing workflow, run by the accounts team after approval:
+-- null -> 'processing' -> 'processed' (with a scanned payment slip attached).
+ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS payment_status TEXT;
+ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS payment_slip_data TEXT;
+ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS payment_processed_by INTEGER REFERENCES users(id);
+ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS payment_processed_at TIMESTAMPTZ;
+ALTER TABLE bill_summaries ADD COLUMN IF NOT EXISTS payment_status TEXT;
+ALTER TABLE bill_summaries ADD COLUMN IF NOT EXISTS payment_slip_data TEXT;
+ALTER TABLE bill_summaries ADD COLUMN IF NOT EXISTS payment_processed_by INTEGER REFERENCES users(id);
+ALTER TABLE bill_summaries ADD COLUMN IF NOT EXISTS payment_processed_at TIMESTAMPTZ;
+
+-- Permission for the accounts/finance team to process payments, in
+-- addition to admins who always can.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS can_process_payments BOOLEAN NOT NULL DEFAULT false;
+
+-- In-app notifications: submitters are notified of status changes on their
+-- own documents, and approvers/checkers are notified when something needs
+-- their action.
+CREATE TABLE IF NOT EXISTS notifications (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  title TEXT NOT NULL,
+  message TEXT,
+  link TEXT,
+  read BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read);
+
+-- Admin-configurable list of job designations (shown when adding/editing users).
+CREATE TABLE IF NOT EXISTS designation_options (
+  id SERIAL PRIMARY KEY,
+  label TEXT UNIQUE NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- Self-service profile: photo and signature are stored as small base64 data
 -- URLs (resized client-side before upload) so no separate file storage is
 -- needed. Signatures are stamped onto documents automatically wherever

@@ -4,6 +4,7 @@ import { requireSession, requireRole } from "@/lib/auth";
 
 const DEFAULTS = {
   timezone: "Indian/Maldives",
+  currency: "MVR",
 };
 
 export async function GET() {

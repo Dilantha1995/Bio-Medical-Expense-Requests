@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { lineItemTotal, formatMVR } from "@/lib/calc";
-import { billItemTotal, billGrandTotal, summarizeBillItems } from "@/lib/billCalc";
+import { billItemTotal, summarizeBillItems } from "@/lib/billCalc";
 import { formatDateInTz, formatDateTimeInTz } from "@/lib/formatDate";
 
 const COMPANY_INFO = {
@@ -23,14 +23,22 @@ function SignatureBlock({ label, name, signature, timestamp, timezone }) {
   );
 }
 
-export default function PrintableForm({ doc, timezone }) {
+export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
   const isBill = doc.docTitle === "Summary of Bills";
   const items = doc.line_items || [];
   const company = COMPANY_INFO[doc.company] || null;
   const summary = isBill ? summarizeBillItems(items) : null;
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm print:shadow-none print:rounded-none" id="printable-form">
+    <div className="bg-white p-6 rounded-lg shadow-sm print:shadow-none print:rounded-none relative" id="printable-form">
+      {doc.deleted_at && (
+        <div className="bg-red-50 border-2 border-red-300 rounded-md p-3 mb-4 text-sm text-red-800">
+          <p className="font-semibold">This entry was deleted</p>
+          <p>By {doc.deleted_by_name || "an admin"} on {formatDateTimeInTz(doc.deleted_at, timezone)}</p>
+          <p>Reason: {doc.deletion_reason}</p>
+        </div>
+      )}
+
       <div className="flex items-center justify-between border-b pb-4 mb-4">
         {company ? (
           <>
@@ -167,8 +175,8 @@ export default function PrintableForm({ doc, timezone }) {
 
       {(doc.advance_received !== undefined) && (
         <div className="flex justify-end gap-8 text-sm mb-4">
-          <p><span className="font-medium">Advance Received:</span> MVR {formatMVR(doc.advance_received)}</p>
-          <p><span className="font-medium">Balance:</span> MVR {formatMVR(doc.balance_due)}
+          <p><span className="font-medium">Advance Received:</span> {currency} {formatMVR(doc.advance_received)}</p>
+          <p><span className="font-medium">Balance:</span> {currency} {formatMVR(doc.balance_due)}
             {" "}{Number(doc.balance_due) > 0 ? "(due from engineer)" : Number(doc.balance_due) < 0 ? "(due to engineer)" : ""}
           </p>
         </div>
@@ -182,6 +190,25 @@ export default function PrintableForm({ doc, timezone }) {
         <p><span className="font-medium">Purpose of Travel:</span> {doc.purpose_of_travel || "-"}</p>
         <p><span className="font-medium">Notes:</span> {doc.notes || "-"}</p>
       </div>
+
+      {doc.payment_status && (
+        <div className="border rounded-md p-3 mb-4 text-sm bg-purple-50 border-purple-200">
+          <p className="font-medium text-purple-800 mb-1">
+            Payment {doc.payment_status === "processed" ? "Processed" : "Processing"}
+          </p>
+          {doc.payment_status === "processed" && (
+            <>
+              <p className="text-purple-700">By {doc.payment_processed_by_name} on {formatDateTimeInTz(doc.payment_processed_at, timezone)}</p>
+              {doc.payment_slip_data && (
+                <div className="mt-2">
+                  <p className="text-xs text-purple-600 mb-1">Payment slip:</p>
+                  <img src={doc.payment_slip_data} alt="Payment slip" className="max-h-48 border rounded" />
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       <div className="grid sm:grid-cols-3 gap-4 text-sm mt-8 pt-4 border-t">
         <SignatureBlock label="Prepared By" name={`${doc.engineer_name} (${doc.engineer_initials})`}
