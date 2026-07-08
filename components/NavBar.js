@@ -22,6 +22,7 @@ export default function NavBar({ fullName, role, canAccessPmDashboard }) {
     { href: "/bills/new", label: "New Bill Summary" },
     { href: "/machines", label: "Machines" },
     ...(role === "admin" || canAccessPmDashboard ? [{ href: "/pm", label: "PM Schedule" }] : []),
+    ...(role === "admin" || role === "approver" ? [{ href: "/reports", label: "Reports" }] : []),
     ...(role === "admin" ? [{ href: "/admin/users", label: "Users" }] : []),
     ...(role === "admin" ? [{ href: "/configure", label: "Configure" }] : []),
     { href: "/profile", label: "My Profile" },

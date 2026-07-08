@@ -25,6 +25,8 @@ export async function PATCH(req, { params }) {
       }
       sets.push(`password_hash=$${i++}`);
       values.push(await hashPassword(newPassword));
+      sets.push(`must_change_password=$${i++}`);
+      values.push(true);
     }
 
     if (sets.length === 0) {
@@ -34,7 +36,7 @@ export async function PATCH(req, { params }) {
     values.push(params.id);
     const { rows } = await query(
       `UPDATE users SET ${sets.join(", ")} WHERE id=$${i}
-       RETURNING id, username, full_name, initials, designation, role, can_final_approve, can_manage_machines, can_access_pm_dashboard, active`,
+       RETURNING id, username, full_name, initials, designation, role, can_final_approve, can_manage_machines, can_access_pm_dashboard, must_change_password, active`,
       values
     );
 

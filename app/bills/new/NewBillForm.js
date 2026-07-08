@@ -34,12 +34,12 @@ export default function NewBillForm() {
   const [successBanner, setSuccessBanner] = useState("");
   const [nextRefNumber, setNextRefNumber] = useState("");
 
-  function loadNextRefNumber() {
-    fetch("/api/bills/next-ref-number")
+  function loadNextRefNumber(company) {
+    fetch(`/api/bills/next-ref-number?company=${company || form.company}`)
       .then((r) => r.json())
       .then((d) => setNextRefNumber(d.refNumber || ""));
   }
-  useEffect(() => { loadNextRefNumber(); }, []);
+  useEffect(() => { loadNextRefNumber(form.company); }, [form.company]);
 
   function set(key, value) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -117,7 +117,7 @@ export default function NewBillForm() {
         setSuccessBanner(`Saved as ${refNumber}. Ready for another bill summary.`);
         setForm(blankState());
         setSaving(false);
-        loadNextRefNumber();
+        loadNextRefNumber("PSMS");
       } else {
         router.push(`/bills/${id}`);
       }

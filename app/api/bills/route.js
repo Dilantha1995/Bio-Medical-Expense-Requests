@@ -9,6 +9,10 @@ export async function GET(req) {
     const session = await requireSession();
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
+    const from = searchParams.get("from");
+    const to = searchParams.get("to");
+    const company = searchParams.get("company");
+    const engineerId = searchParams.get("engineerId");
 
     let sql = `
       SELECT bs.*, u.full_name AS engineer_name, u.initials AS engineer_initials
@@ -20,13 +24,28 @@ export async function GET(req) {
     if (session.role === "engineer") {
       params.push(session.id);
       conditions.push(`bs.engineer_id = $${params.length}`);
+    } else if (engineerId) {
+      params.push(engineerId);
+      conditions.push(`bs.engineer_id = $${params.length}`);
     }
     if (status) {
       params.push(status);
       conditions.push(`bs.status = $${params.length}`);
     }
+    if (from) {
+      params.push(from);
+      conditions.push(`bs.summary_date >= $${params.length}`);
+    }
+    if (to) {
+      params.push(to);
+      conditions.push(`bs.summary_date <= $${params.length}`);
+    }
+    if (company) {
+      params.push(company);
+      conditions.push(`bs.company = $${params.length}`);
+    }
     if (conditions.length) sql += " WHERE " + conditions.join(" AND ");
-    sql += " ORDER BY bs.created_at DESC LIMIT 200";
+    sql += " ORDER BY bs.created_at DESC LIMIT 500";
 
     const { rows } = await query(sql, params);
     return NextResponse.json({ bills: rows });
@@ -52,11 +71,11 @@ export async function POST(req) {
       }
     }
 
-    const refNumber = await nextRefNumber("BM", session.initials);
+    const companyValue = ["PSMS", "PPM"].includes(company) ? company : "PSMS";
+    const refNumber = await nextRefNumber("BM", session.initials, companyValue);
     const total = billGrandTotal(lineItems);
     const advReceived = parseFloat(advanceReceived) || 0;
     const balance = total - advReceived;
-    const companyValue = ["PSMS", "PPM"].includes(company) ? company : "PSMS";
 
     const { rows } = await query(
       `INSERT INTO bill_summaries

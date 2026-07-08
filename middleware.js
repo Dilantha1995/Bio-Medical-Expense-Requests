@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
-const PROTECTED_PREFIXES = ["/dashboard", "/requests", "/bills", "/admin", "/machines", "/pm", "/profile", "/configure"];
+const PROTECTED_PREFIXES = ["/dashboard", "/requests", "/bills", "/admin", "/machines", "/pm", "/profile", "/configure", "/reports", "/change-password"];
 const ADMIN_ONLY_PREFIXES = ["/admin", "/pm/fields", "/pm/rules", "/configure"];
 
 export async function middleware(req) {
@@ -18,6 +18,10 @@ export async function middleware(req) {
     const secret = new TextEncoder().encode(process.env.SESSION_SECRET);
     const { payload } = await jwtVerify(token, secret);
 
+    if (payload.mustChangePassword && pathname !== "/change-password") {
+      return NextResponse.redirect(new URL("/change-password", req.url));
+    }
+
     const needsAdmin = ADMIN_ONLY_PREFIXES.some((p) => pathname.startsWith(p));
     if (needsAdmin && payload.role !== "admin") {
       return NextResponse.redirect(new URL("/dashboard", req.url));
@@ -29,5 +33,5 @@ export async function middleware(req) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/requests/:path*", "/bills/:path*", "/admin/:path*", "/machines/:path*", "/pm/:path*", "/profile/:path*", "/configure/:path*"],
+  matcher: ["/dashboard/:path*", "/requests/:path*", "/bills/:path*", "/admin/:path*", "/machines/:path*", "/pm/:path*", "/profile/:path*", "/configure/:path*", "/reports/:path*", "/change-password/:path*"],
 };

@@ -28,12 +28,12 @@ export default function NewRequestForm() {
   const [successBanner, setSuccessBanner] = useState("");
   const [nextRefNumber, setNextRefNumber] = useState("");
 
-  function loadNextRefNumber() {
-    fetch("/api/requests/next-ref-number")
+  function loadNextRefNumber(company) {
+    fetch(`/api/requests/next-ref-number?company=${company || form.company}`)
       .then((r) => r.json())
       .then((d) => setNextRefNumber(d.refNumber || ""));
   }
-  useEffect(() => { loadNextRefNumber(); }, []);
+  useEffect(() => { loadNextRefNumber(form.company); }, [form.company]);
 
   function set(key, value) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -73,7 +73,7 @@ export default function NewRequestForm() {
         setSuccessBanner(`Saved as ${refNumber}. Ready for another advance request.`);
         setForm(blankState());
         setSaving(false);
-        loadNextRefNumber();
+        loadNextRefNumber("PSMS");
       } else {
         router.push(`/requests/${id}`);
       }

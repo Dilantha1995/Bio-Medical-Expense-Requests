@@ -13,20 +13,37 @@ export default function ProfileClient() {
   const [phone, setPhone] = useState("");
   const [photoData, setPhotoData] = useState(null);
   const [signatureData, setSignatureData] = useState(null);
+  const [bankName, setBankName] = useState("");
+  const [bankAccountName, setBankAccountName] = useState("");
+  const [bankAccountNumber, setBankAccountNumber] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
 
   const photoInputRef = useRef(null);
   const signatureInputRef = useRef(null);
 
+  const [loadError, setLoadError] = useState("");
+
   useEffect(() => {
     fetch("/api/profile")
-      .then((r) => r.json())
-      .then((d) => {
+      .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
+      .then(({ ok, d }) => {
+        if (!ok || !d.user) {
+          setLoadError(d.error || "Could not load your profile.");
+          setLoading(false);
+          return;
+        }
         setUser(d.user);
-        setPhone(d.user?.phone || "");
-        setPhotoData(d.user?.photo_data || null);
-        setSignatureData(d.user?.signature_data || null);
+        setPhone(d.user.phone || "");
+        setPhotoData(d.user.photo_data || null);
+        setSignatureData(d.user.signature_data || null);
+        setBankName(d.user.bank_name || "");
+        setBankAccountName(d.user.bank_account_name || "");
+        setBankAccountNumber(d.user.bank_account_number || "");
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoadError("Could not load your profile.");
         setLoading(false);
       });
   }, []);
@@ -51,7 +68,7 @@ export default function ProfileClient() {
     const res = await fetch("/api/profile", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, photoData, signatureData }),
+      body: JSON.stringify({ phone, photoData, signatureData, bankName, bankAccountName, bankAccountNumber }),
     });
     const data = await res.json();
     setSaving(false);
@@ -76,6 +93,7 @@ export default function ProfileClient() {
   }
 
   if (loading) return <p className="text-sm text-gray-500">Loading...</p>;
+  if (loadError || !user) return <p className="text-sm text-red-600">{loadError || "Could not load your profile."}</p>;
 
   return (
     <div className="space-y-6">
@@ -122,6 +140,24 @@ export default function ProfileClient() {
         <div className="mt-4">
           <label className="block text-xs font-medium text-gray-600 mb-1">Phone</label>
           <input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full sm:w-64 border rounded-md px-3 py-2 text-sm" />
+        </div>
+
+        <div className="mt-4 pt-4 border-t">
+          <p className="text-xs font-semibold text-gray-600 mb-2">Bank Account (for advance payment transfers)</p>
+          <div className="grid sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Bank Name</label>
+              <input value={bankName} onChange={(e) => setBankName(e.target.value)} className="w-full border rounded-md px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Account Name</label>
+              <input value={bankAccountName} onChange={(e) => setBankAccountName(e.target.value)} className="w-full border rounded-md px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Account Number</label>
+              <input value={bankAccountNumber} onChange={(e) => setBankAccountNumber(e.target.value)} className="w-full border rounded-md px-3 py-2 text-sm" />
+            </div>
+          </div>
         </div>
 
         {error && <p className="text-sm text-red-600 mt-3">{error}</p>}

@@ -82,12 +82,15 @@ export default function AdminUsersClient() {
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Username</label>
           <input required value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })}
+            autoComplete="off" name="new-user-username"
             className="w-full border rounded-md px-3 py-2 text-sm" />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Password</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Temporary Password</label>
           <input required type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
+            autoComplete="new-password" name="new-user-password"
             className="w-full border rounded-md px-3 py-2 text-sm" />
+          <p className="text-[11px] text-gray-400 mt-1">They'll be required to set their own password the first time they log in.</p>
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Role</label>
@@ -134,13 +137,14 @@ export default function AdminUsersClient() {
               <th className="p-3">Manage Machines</th>
               <th className="p-3">PM Access</th>
               <th className="p-3">Active</th>
+              <th className="p-3">Password</th>
               <th className="p-3">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={7} className="p-4 text-center text-gray-400">Loading...</td></tr>}
+            {loading && <tr><td colSpan={10} className="p-4 text-center text-gray-400">Loading...</td></tr>}
             {!loading && users.length === 0 && (
-              <tr><td colSpan={7} className="p-4 text-center text-gray-400">No users yet.</td></tr>
+              <tr><td colSpan={10} className="p-4 text-center text-gray-400">No users yet.</td></tr>
             )}
             {users.map((u) => (
               <tr key={u.id} className="border-b last:border-0">
@@ -168,6 +172,13 @@ export default function AdminUsersClient() {
                 <td className="p-3">
                   <input type="checkbox" checked={u.active}
                     onChange={(e) => updateUser(u.id, { active: e.target.checked })} />
+                </td>
+                <td className="p-3">
+                  {u.must_change_password ? (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Must change</span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Set</span>
+                  )}
                 </td>
                 <td className="p-3">
                   <button onClick={() => handleResetPassword(u.id)} className="text-xs text-brand-navy hover:underline">

@@ -14,14 +14,26 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Running sequence per engineer initials + year + document type (ADV / BM)
+-- Running sequence per company + engineer initials + year + document type (ADV / BM).
+-- Each company (PSMS / PPM) gets its own independent numbering sequence.
 CREATE TABLE IF NOT EXISTS ref_counters (
   doc_type TEXT NOT NULL,      -- 'ADV' (advance request) or 'BM' (bill summary)
   initials TEXT NOT NULL,
   year TEXT NOT NULL,          -- 'YY' e.g. '26'
+  company TEXT NOT NULL DEFAULT 'PSMS',
   last_seq INTEGER NOT NULL DEFAULT 0,
-  PRIMARY KEY (doc_type, initials, year)
+  PRIMARY KEY (doc_type, initials, year, company)
 );
+
+-- Migration for databases created before per-company numbering existed.
+ALTER TABLE ref_counters ADD COLUMN IF NOT EXISTS company TEXT NOT NULL DEFAULT 'PSMS';
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ref_counters_pkey_v2') THEN
+    ALTER TABLE ref_counters DROP CONSTRAINT IF EXISTS ref_counters_pkey;
+    ALTER TABLE ref_counters ADD CONSTRAINT ref_counters_pkey_v2 PRIMARY KEY (doc_type, initials, year, company);
+  END IF;
+END $$;
 
 -- Travel Advance Requests (one row per trip; line items for multiple team members stored as JSON)
 CREATE TABLE IF NOT EXISTS advance_requests (
@@ -90,6 +102,16 @@ ALTER TABLE bill_summaries ADD COLUMN IF NOT EXISTS company TEXT NOT NULL DEFAUL
 ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_data TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS signature_data TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;
+
+-- Bank details for advance payment / reimbursement transfers.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_name TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_account_name TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_account_number TEXT;
+
+-- When true, the user is forced to change their password before they can
+-- use the rest of the app. Set on new-user creation and on admin password
+-- resets; cleared automatically once the user sets their own password.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT false;
 
 -- Admin-configurable "Nature of Payment" options for Bill Summary line items.
 CREATE TABLE IF NOT EXISTS nature_of_payment_options (

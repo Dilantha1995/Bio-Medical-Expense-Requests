@@ -10,6 +10,10 @@ export async function GET(req) {
     const session = await requireSession();
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
+    const from = searchParams.get("from");
+    const to = searchParams.get("to");
+    const company = searchParams.get("company");
+    const engineerId = searchParams.get("engineerId");
 
     let sql = `
       SELECT ar.*, u.full_name AS engineer_name, u.initials AS engineer_initials,
@@ -23,13 +27,28 @@ export async function GET(req) {
     if (session.role === "engineer") {
       params.push(session.id);
       conditions.push(`ar.engineer_id = $${params.length}`);
+    } else if (engineerId) {
+      params.push(engineerId);
+      conditions.push(`ar.engineer_id = $${params.length}`);
     }
     if (status) {
       params.push(status);
       conditions.push(`ar.status = $${params.length}`);
     }
+    if (from) {
+      params.push(from);
+      conditions.push(`ar.request_date >= $${params.length}`);
+    }
+    if (to) {
+      params.push(to);
+      conditions.push(`ar.request_date <= $${params.length}`);
+    }
+    if (company) {
+      params.push(company);
+      conditions.push(`ar.company = $${params.length}`);
+    }
     if (conditions.length) sql += " WHERE " + conditions.join(" AND ");
-    sql += " ORDER BY ar.created_at DESC LIMIT 200";
+    sql += " ORDER BY ar.created_at DESC LIMIT 500";
 
     const { rows } = await query(sql, params);
     rows.forEach((r) => { r.bill_status = billSubmissionStatus(r.returned_at, r.has_bill_summary); });
@@ -49,9 +68,9 @@ export async function POST(req) {
       return NextResponse.json({ error: "Request date and at least one line item are required." }, { status: 400 });
     }
 
-    const refNumber = await nextRefNumber("ADV", session.initials);
-    const total = grandTotal(lineItems);
     const companyValue = ["PSMS", "PPM"].includes(company) ? company : "PSMS";
+    const refNumber = await nextRefNumber("ADV", session.initials, companyValue);
+    const total = grandTotal(lineItems);
 
     const { rows } = await query(
       `INSERT INTO advance_requests

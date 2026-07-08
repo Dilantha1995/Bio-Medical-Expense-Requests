@@ -6,7 +6,8 @@ export async function GET() {
   try {
     const session = await requireSession();
     const { rows } = await query(
-      `SELECT id, username, full_name, initials, designation, role, phone, photo_data, signature_data
+      `SELECT id, username, full_name, initials, designation, role, phone, photo_data, signature_data,
+              bank_name, bank_account_name, bank_account_number
        FROM users WHERE id=$1`,
       [session.id]
     );
@@ -21,7 +22,7 @@ export async function PATCH(req) {
   try {
     const session = await requireSession();
     const body = await req.json();
-    const { fullName, phone, photoData, signatureData, currentPassword, newPassword } = body;
+    const { fullName, phone, photoData, signatureData, currentPassword, newPassword, bankName, bankAccountName, bankAccountNumber } = body;
 
     const sets = [];
     const values = [];
@@ -31,6 +32,9 @@ export async function PATCH(req) {
     if (phone !== undefined) { sets.push(`phone=$${i++}`); values.push(phone); }
     if (photoData !== undefined) { sets.push(`photo_data=$${i++}`); values.push(photoData); }
     if (signatureData !== undefined) { sets.push(`signature_data=$${i++}`); values.push(signatureData); }
+    if (bankName !== undefined) { sets.push(`bank_name=$${i++}`); values.push(bankName); }
+    if (bankAccountName !== undefined) { sets.push(`bank_account_name=$${i++}`); values.push(bankAccountName); }
+    if (bankAccountNumber !== undefined) { sets.push(`bank_account_number=$${i++}`); values.push(bankAccountNumber); }
 
     if (newPassword) {
       if (!currentPassword) {
@@ -55,7 +59,8 @@ export async function PATCH(req) {
     values.push(session.id);
     const { rows } = await query(
       `UPDATE users SET ${sets.join(", ")} WHERE id=$${i}
-       RETURNING id, username, full_name, initials, designation, role, phone, photo_data, signature_data`,
+       RETURNING id, username, full_name, initials, designation, role, phone, photo_data, signature_data,
+                 bank_name, bank_account_name, bank_account_number`,
       values
     );
     return NextResponse.json({ user: rows[0] });
