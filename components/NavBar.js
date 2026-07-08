@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -9,6 +9,15 @@ export default function NavBar({ fullName, role, canAccessPmDashboard }) {
   const router = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [schemaWarning, setSchemaWarning] = useState(null);
+
+  useEffect(() => {
+    if (role !== "admin") return;
+    fetch("/api/schema-check")
+      .then((r) => r.json())
+      .then((d) => { if (!d.ok) setSchemaWarning(d.missing || []); })
+      .catch(() => {});
+  }, [role]);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -83,6 +92,15 @@ export default function NavBar({ fullName, role, canAccessPmDashboard }) {
               </button>
             </div>
           </nav>
+        </div>
+      )}
+
+      {schemaWarning && (
+        <div className="bg-amber-50 border-t border-amber-200 px-4 py-2 text-xs text-amber-800">
+          <span className="font-medium">Database needs an update</span> — some recent features aren't available yet
+          ({schemaWarning.join(", ")}). Visit your setup URL again:{" "}
+          <code className="bg-amber-100 px-1 rounded">yoursite.vercel.app/api/setup?token=YOUR_SETUP_SECRET</code>{" "}
+          to fix this — it's safe to run anytime and won't touch existing data.
         </div>
       )}
     </header>
