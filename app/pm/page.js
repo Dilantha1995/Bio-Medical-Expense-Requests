@@ -5,6 +5,7 @@ import PmDashboardClient from "./PmDashboardClient";
 
 export default async function PmDashboardPage() {
   const session = await getSession();
+  if (!session) redirect("/login");
   if (session.role !== "admin" && !session.canAccessPmDashboard) {
     redirect("/dashboard");
   }

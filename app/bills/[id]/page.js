@@ -7,6 +7,7 @@ import ActionsBar from "../../requests/[id]/ActionsBar";
 
 export default async function BillDetailPage({ params }) {
   const session = await getSession();
+  if (!session) redirect("/login");
   const record = await getBillSummaryById(params.id);
   if (!record) notFound();
   if (session.role === "engineer" && record.engineer_id !== session.id) redirect("/dashboard");

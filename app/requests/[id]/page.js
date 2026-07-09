@@ -8,6 +8,7 @@ import BillStatusBanner from "./BillStatusBanner";
 
 export default async function RequestDetailPage({ params }) {
   const session = await getSession();
+  if (!session) redirect("/login");
   const record = await getAdvanceRequestById(params.id);
   if (!record) notFound();
   if (session.role === "engineer" && record.engineer_id !== session.id) redirect("/dashboard");
