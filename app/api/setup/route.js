@@ -28,7 +28,18 @@ export async function GET(req) {
       );
     }
     if (!token || token !== process.env.SETUP_SECRET) {
-      return NextResponse.json({ error: "Invalid or missing token." }, { status: 403 });
+      const expected = process.env.SETUP_SECRET || "";
+      const mask = (s) => (s.length <= 4 ? "*".repeat(s.length) : s.slice(0, 2) + "*".repeat(Math.max(0, s.length - 4)) + s.slice(-2));
+      return NextResponse.json({
+        error: "Invalid or missing token.",
+        debug: {
+          tokenReceived: token ? mask(token) : "(none)",
+          tokenReceivedLength: token ? token.length : 0,
+          expectedLength: expected.length,
+          expectedMasked: mask(expected),
+          matchesAfterTrim: token ? token.trim() === expected.trim() : false,
+        },
+      }, { status: 403 });
     }
 
     const pool = getPool();
