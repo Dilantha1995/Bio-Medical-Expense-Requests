@@ -12,6 +12,8 @@ export default function ActionsBar({ id, kind, status, session, returnedAt, paym
   const [returnDate, setReturnDate] = useState(returnedAt ? returnedAt.slice(0, 10) : new Date().toISOString().slice(0, 10));
   const [showDeleteBox, setShowDeleteBox] = useState(false);
   const [deleteReason, setDeleteReason] = useState("");
+  const [showRejectPaymentBox, setShowRejectPaymentBox] = useState(false);
+  const [rejectPaymentReason, setRejectPaymentReason] = useState("");
   const slipInputRef = useRef(null);
 
   const canCheck = ["approver", "admin"].includes(session.role) && status === "submitted";
@@ -20,6 +22,7 @@ export default function ActionsBar({ id, kind, status, session, returnedAt, paym
   const canMarkReturned = kind === "requests" && ["approver", "admin"].includes(session.role) && status === "approved";
   const canDelete = session.role === "admin" && status !== "deleted";
   const canProcessPayment = (session.role === "admin" || session.canProcessPayments) && status === "approved";
+  const paymentIsFinal = paymentStatus === "processed";
 
   async function doAction(action, extra) {
     setBusy(true);
@@ -42,6 +45,7 @@ export default function ActionsBar({ id, kind, status, session, returnedAt, paym
     }
     setShowReturnPicker(false);
     setShowDeleteBox(false);
+    setShowRejectPaymentBox(false);
     router.refresh();
   }
 
@@ -52,6 +56,11 @@ export default function ActionsBar({ id, kind, status, session, returnedAt, paym
   function confirmDelete() {
     if (!deleteReason.trim()) { setError("A reason is required."); return; }
     doAction("delete", { reason: deleteReason.trim() });
+  }
+
+  function confirmRejectPayment() {
+    if (!rejectPaymentReason.trim()) { setError("A reason is required."); return; }
+    doAction("reject_payment", { reason: rejectPaymentReason.trim() });
   }
 
   async function handleSlipUpload(e) {
@@ -96,10 +105,10 @@ export default function ActionsBar({ id, kind, status, session, returnedAt, paym
             {returnedAt ? "Update Return Date" : "Mark Returned"}
           </button>
         )}
-        {canProcessPayment && paymentStatus !== "processing" && paymentStatus !== "processed" && (
+        {canProcessPayment && !paymentIsFinal && paymentStatus !== "processing" && (
           <button onClick={() => doAction("start_payment")} disabled={busy}
             className="text-sm bg-purple-600 text-white px-3 py-2 sm:py-1.5 rounded-md disabled:opacity-50">
-            Start Payment Processing
+            {paymentStatus === "rejected" ? "Retry Payment Processing" : "Start Payment Processing"}
           </button>
         )}
         {canProcessPayment && paymentStatus === "processing" && (
@@ -109,6 +118,12 @@ export default function ActionsBar({ id, kind, status, session, returnedAt, paym
               {busy ? "Uploading..." : "Mark Processed & Attach Slip"}
             </button>
             <input ref={slipInputRef} type="file" accept="image/*" className="hidden" onChange={handleSlipUpload} />
+            {!showRejectPaymentBox && (
+              <button onClick={() => setShowRejectPaymentBox(true)} disabled={busy}
+                className="text-sm text-brand-red border border-red-300 px-3 py-2 sm:py-1.5 rounded-md disabled:opacity-50">
+                Reject Payment
+              </button>
+            )}
           </>
         )}
         <a href={`/api/${kind}/${id}/pdf`} target="_blank" rel="noreferrer"
@@ -136,6 +151,21 @@ export default function ActionsBar({ id, kind, status, session, returnedAt, paym
             {busy ? "Saving..." : "Confirm"}
           </button>
           <button onClick={() => setShowReturnPicker(false)} className="text-sm border px-3 py-1.5 rounded-md">
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {canProcessPayment && showRejectPaymentBox && (
+        <div className="mt-2 flex flex-wrap items-center gap-2 bg-red-50 border border-red-200 rounded-md p-2">
+          <label className="text-xs text-red-800">Reason for rejecting payment:</label>
+          <input value={rejectPaymentReason} onChange={(e) => setRejectPaymentReason(e.target.value)}
+            placeholder="e.g. Incorrect bank details" className="border rounded px-2 py-1.5 text-sm flex-1 min-w-[160px]" />
+          <button onClick={confirmRejectPayment} disabled={busy}
+            className="text-sm bg-brand-red text-white px-3 py-1.5 rounded-md disabled:opacity-50">
+            {busy ? "Saving..." : "Confirm Reject"}
+          </button>
+          <button onClick={() => setShowRejectPaymentBox(false)} className="text-sm border px-3 py-1.5 rounded-md">
             Cancel
           </button>
         </div>

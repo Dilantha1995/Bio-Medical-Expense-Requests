@@ -27,10 +27,12 @@ const BILL_STATUS_LABELS = {
 const PAYMENT_STYLES = {
   processing: "bg-purple-100 text-purple-700",
   processed: "bg-purple-200 text-purple-800",
+  rejected: "bg-red-100 text-red-700",
 };
 const PAYMENT_LABELS = {
   processing: "Payment processing",
   processed: "Payment processed",
+  rejected: "Payment rejected",
 };
 
 function StatusBadge({ status }) {

@@ -111,10 +111,12 @@ ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS payment_status TEXT;
 ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS payment_slip_data TEXT;
 ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS payment_processed_by INTEGER REFERENCES users(id);
 ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS payment_processed_at TIMESTAMPTZ;
+ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS payment_rejection_reason TEXT;
 ALTER TABLE bill_summaries ADD COLUMN IF NOT EXISTS payment_status TEXT;
 ALTER TABLE bill_summaries ADD COLUMN IF NOT EXISTS payment_slip_data TEXT;
 ALTER TABLE bill_summaries ADD COLUMN IF NOT EXISTS payment_processed_by INTEGER REFERENCES users(id);
 ALTER TABLE bill_summaries ADD COLUMN IF NOT EXISTS payment_processed_at TIMESTAMPTZ;
+ALTER TABLE bill_summaries ADD COLUMN IF NOT EXISTS payment_rejection_reason TEXT;
 
 -- Permission for the accounts/finance team to process payments, in
 -- addition to admins who always can.

@@ -42,7 +42,7 @@ export async function PATCH(req, { params }) {
       return NextResponse.json({ bill: updated });
     }
 
-    if (action === "start_payment" || action === "mark_payment_processed") {
+    if (action === "start_payment" || action === "mark_payment_processed" || action === "reject_payment") {
       if (session.role !== "admin" && !session.canProcessPayments) {
         return NextResponse.json({ error: "You're not authorized to process payments." }, { status: 403 });
       }
@@ -51,10 +51,22 @@ export async function PATCH(req, { params }) {
       if (before.status !== "approved") {
         return NextResponse.json({ error: "Only approved bill summaries can enter payment processing." }, { status: 400 });
       }
+      if (before.payment_status === "processed") {
+        return NextResponse.json({ error: "This payment has already been processed." }, { status: 400 });
+      }
 
       if (action === "start_payment") {
-        await query(`UPDATE bill_summaries SET payment_status='processing' WHERE id=$1`, [params.id]);
+        await query(`UPDATE bill_summaries SET payment_status='processing', payment_rejection_reason=NULL WHERE id=$1`, [params.id]);
         await notify(before.engineer_id, "Payment processing started", `Payment for ${before.ref_number} is now being processed.`, link);
+      } else if (action === "reject_payment") {
+        if (!reason || !reason.trim()) {
+          return NextResponse.json({ error: "A reason is required to reject a payment." }, { status: 400 });
+        }
+        await query(
+          `UPDATE bill_summaries SET payment_status='rejected', payment_rejection_reason=$1 WHERE id=$2`,
+          [reason.trim(), params.id]
+        );
+        await notify(before.engineer_id, "Payment rejected", `Payment for ${before.ref_number} was rejected by ${session.fullName}. Reason: ${reason.trim()}`, link);
       } else {
         if (!paymentSlipData) {
           return NextResponse.json({ error: "Please attach the payment slip." }, { status: 400 });

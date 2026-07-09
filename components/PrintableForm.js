@@ -192,9 +192,9 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
       </div>
 
       {doc.payment_status && (
-        <div className="border rounded-md p-3 mb-4 text-sm bg-purple-50 border-purple-200">
-          <p className="font-medium text-purple-800 mb-1">
-            Payment {doc.payment_status === "processed" ? "Processed" : "Processing"}
+        <div className={`border rounded-md p-3 mb-4 text-sm ${doc.payment_status === "rejected" ? "bg-red-50 border-red-200" : "bg-purple-50 border-purple-200"}`}>
+          <p className={`font-medium mb-1 ${doc.payment_status === "rejected" ? "text-red-800" : "text-purple-800"}`}>
+            Payment {doc.payment_status === "processed" ? "Processed" : doc.payment_status === "rejected" ? "Rejected" : "Processing"}
           </p>
           {doc.payment_status === "processed" && (
             <>
@@ -206,6 +206,9 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
                 </div>
               )}
             </>
+          )}
+          {doc.payment_status === "rejected" && (
+            <p className="text-red-700">Reason: {doc.payment_rejection_reason}</p>
           )}
         </div>
       )}
