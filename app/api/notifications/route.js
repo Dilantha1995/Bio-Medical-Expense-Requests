@@ -12,6 +12,12 @@ export async function GET() {
     const unreadCount = rows.filter((r) => !r.read).length;
     return NextResponse.json({ notifications: rows, unreadCount });
   } catch (e) {
-    return NextResponse.json({ error: e.message }, { status: e.status || 500 });
+    if (e.status) {
+      return NextResponse.json({ error: e.message }, { status: e.status });
+    }
+    // Table not migrated yet, or some other transient DB issue — don't
+    // break the whole page over a notification bell.
+    console.error("notifications GET failed (fail-open):", e.message);
+    return NextResponse.json({ notifications: [], unreadCount: 0 });
   }
 }
