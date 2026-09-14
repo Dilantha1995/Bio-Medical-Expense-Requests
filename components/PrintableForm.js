@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { lineItemTotal, formatMVR } from "@/lib/calc";
-import { billItemTotal, summarizeBillItems } from "@/lib/billCalc";
+import { billItemTotal, summarizeBillItems, advanceVsSpendAnalysis } from "@/lib/billCalc";
 import { shippingItemTotal, summarizeShippingItemsByCurrency } from "@/lib/shippingCalc";
 import { formatDateInTz, formatDateTimeInTz } from "@/lib/formatDate";
 
@@ -31,6 +31,9 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
   const company = COMPANY_INFO[doc.company] || null;
   const summary = isBill ? summarizeBillItems(items) : null;
   const shippingByCurrency = isShipping ? summarizeShippingItemsByCurrency(items) : null;
+  const advanceAnalysis = isBill && Number(doc.advance_received) > 0
+    ? advanceVsSpendAnalysis(doc.total_amount, doc.advance_received)
+    : null;
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm print:shadow-none print:rounded-none relative" id="printable-form">
@@ -231,12 +234,21 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
         </div>
       )}
 
-      {(doc.advance_received !== undefined) && (
-        <div className="flex justify-end gap-8 text-sm mb-4">
-          <p><span className="font-medium">Advance Received:</span> {currency} {formatMVR(doc.advance_received)}</p>
-          <p><span className="font-medium">Balance:</span> {currency} {formatMVR(doc.balance_due)}
-            {" "}{Number(doc.balance_due) > 0 ? "(due from engineer)" : Number(doc.balance_due) < 0 ? "(due to engineer)" : ""}
-          </p>
+      {advanceAnalysis && (
+        <div className="border rounded-md p-3 mb-4 text-xs">
+          <p className="font-medium mb-2 text-sm">Advance vs Spend Analysis</p>
+          <div className="flex justify-between py-1">
+            <span>Advance Taken</span>
+            <span>{currency} {formatMVR(advanceAnalysis.advanceReceived)}</span>
+          </div>
+          <div className="flex justify-between py-1 border-b pb-2 mb-1">
+            <span>Spend Amount</span>
+            <span>{currency} {formatMVR(advanceAnalysis.spendAmount)}</span>
+          </div>
+          <div className="flex justify-between font-semibold">
+            <span>{advanceAnalysis.isExcess ? "Excess" : "Minus"}</span>
+            <span>{currency} {formatMVR(advanceAnalysis.difference)}</span>
+          </div>
         </div>
       )}
 

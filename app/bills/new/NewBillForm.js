@@ -202,6 +202,7 @@ export default function NewBillForm() {
             ["Notes", form.notes],
           ]}
           items={form.items}
+          advanceReceived={form.advanceReceived}
           onClose={() => setShowPreview(false)}
         />
       )}

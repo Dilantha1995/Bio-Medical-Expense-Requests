@@ -1,9 +1,13 @@
 "use client";
 
-import { billItemTotal, billGrandTotal } from "@/lib/billCalc";
+import { billItemTotal, billGrandTotal, advanceVsSpendAnalysis } from "@/lib/billCalc";
 import { formatMVR } from "@/lib/calc";
 
-export default function BillPreviewModal({ title, meta, items, onClose }) {
+export default function BillPreviewModal({ title, meta, items, advanceReceived, onClose }) {
+  const grandTotal = billGrandTotal(items);
+  const advanceAnalysis = Number(advanceReceived) > 0
+    ? advanceVsSpendAnalysis(grandTotal, advanceReceived)
+    : null;
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-2 sm:p-4" onClick={onClose}>
       <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-auto p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
@@ -46,11 +50,29 @@ export default function BillPreviewModal({ title, meta, items, onClose }) {
             <tfoot>
               <tr className="border-t font-semibold">
                 <td colSpan={5} className="p-2 text-right">TOTAL</td>
-                <td className="p-2 text-right">{formatMVR(billGrandTotal(items))}</td>
+                <td className="p-2 text-right">{formatMVR(grandTotal)}</td>
               </tr>
             </tfoot>
           </table>
         </div>
+
+        {advanceAnalysis && (
+          <div className="border rounded-md p-3 mt-4 text-xs">
+            <p className="font-medium mb-2 text-sm">Advance vs Spend Analysis</p>
+            <div className="flex justify-between py-1">
+              <span>Advance Taken</span>
+              <span>MVR {formatMVR(advanceAnalysis.advanceReceived)}</span>
+            </div>
+            <div className="flex justify-between py-1 border-b pb-2 mb-1">
+              <span>Spend Amount</span>
+              <span>MVR {formatMVR(advanceAnalysis.spendAmount)}</span>
+            </div>
+            <div className="flex justify-between font-semibold">
+              <span>{advanceAnalysis.isExcess ? "Excess" : "Minus"}</span>
+              <span>MVR {formatMVR(advanceAnalysis.difference)}</span>
+            </div>
+          </div>
+        )}
 
         <div className="mt-4 text-right">
           <button onClick={onClose} className="border px-4 py-2 rounded-md text-sm">Close Preview</button>
