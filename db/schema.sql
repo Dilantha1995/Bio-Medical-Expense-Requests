@@ -353,6 +353,24 @@ VALUES
   ('admin',    'Admin',    true, true,  true,  true,  true,  true,  true,  true,  true,  true,  2)
 ON CONFLICT (key) DO NOTHING;
 
+-- Split a few of the broader permissions above along tab boundaries, so
+-- e.g. PM Schedule's "Columns" editor can be granted without also handing
+-- out all of Configure, or someone can see the Reports tab without seeing
+-- Engineer Performance.
+ALTER TABLE roles ADD COLUMN IF NOT EXISTS can_manage_pm_columns BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE roles ADD COLUMN IF NOT EXISTS can_manage_pm_rules BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE roles ADD COLUMN IF NOT EXISTS can_view_reports BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE roles ADD COLUMN IF NOT EXISTS can_view_activity_log BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE roles ADD COLUMN IF NOT EXISTS can_view_engineer_performance BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE roles ADD COLUMN IF NOT EXISTS can_manage_roles BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Backfill the built-in roles so the new, narrower permissions reproduce
+-- what the old broader ones already granted them. Custom roles keep the
+-- column defaults (false) and can be granted these individually from the
+-- Roles page, same as any newly-added permission.
+UPDATE roles SET can_manage_pm_columns=true, can_manage_pm_rules=true, can_view_reports=true, can_manage_roles=true WHERE key='admin';
+UPDATE roles SET can_view_reports=true, can_view_activity_log=true, can_view_engineer_performance=true WHERE key='approver';
+
 CREATE TABLE IF NOT EXISTS pm_conditional_rules (
   id SERIAL PRIMARY KEY,
   field_key TEXT NOT NULL,

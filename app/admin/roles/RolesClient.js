@@ -2,17 +2,57 @@
 
 import { useEffect, useState } from "react";
 
-const PERMISSIONS = [
-  { key: "canCheck", label: "Check / reject documents" },
-  { key: "canFinalApprove", label: "Give final approval" },
-  { key: "canManageMachines", label: "Manage machines" },
-  { key: "canAccessPmDashboard", label: "PM & Installation dashboard" },
-  { key: "canProcessPayments", label: "Process payments" },
-  { key: "canViewAllRecords", label: "View all users' records" },
-  { key: "canDeleteRecords", label: "Delete records" },
-  { key: "canManageUsers", label: "Manage Users & Roles" },
-  { key: "canManageConfig", label: "Manage Configure, PM columns/rules" },
+// Grouped to mirror the nav: one section per tab, one checkbox per
+// distinct feature inside that tab.
+const GROUPS = [
+  {
+    title: "Requests / Bills / Shipping",
+    permissions: [
+      { key: "canCheck", label: "Check / reject", hint: "Also lets someone mark another engineer's task completed." },
+      { key: "canFinalApprove", label: "Final approval" },
+      { key: "canDeleteRecords", label: "Delete" },
+      { key: "canProcessPayments", label: "Process payments" },
+    ],
+  },
+  {
+    title: "Machines",
+    permissions: [
+      { key: "canManageMachines", label: "Add / edit machines" },
+    ],
+  },
+  {
+    title: "PM Schedule",
+    permissions: [
+      { key: "canAccessPmDashboard", label: "View dashboard" },
+      { key: "canManagePmColumns", label: "Manage columns" },
+      { key: "canManagePmRules", label: "Manage color rules" },
+    ],
+  },
+  {
+    title: "Reports",
+    permissions: [
+      { key: "canViewReports", label: "View Reports tab" },
+      { key: "canViewAllRecords", label: "View all users' records" },
+      { key: "canViewActivityLog", label: "Activity Log" },
+      { key: "canViewEngineerPerformance", label: "Engineer Performance" },
+    ],
+  },
+  {
+    title: "Admin",
+    permissions: [
+      { key: "canManageUsers", label: "Manage Users", hint: "Also lets someone request an extension on another engineer's behalf." },
+      { key: "canManageRoles", label: "Manage Roles" },
+    ],
+  },
+  {
+    title: "Configure",
+    permissions: [
+      { key: "canManageConfig", label: "Option lists & settings" },
+    ],
+  },
 ];
+
+const PERMISSIONS = GROUPS.flatMap((g) => g.permissions);
 
 const COLUMN_BY_FIELD = {
   canCheck: "can_check",
@@ -21,9 +61,15 @@ const COLUMN_BY_FIELD = {
   canAccessPmDashboard: "can_access_pm_dashboard",
   canProcessPayments: "can_process_payments",
   canManageUsers: "can_manage_users",
+  canManageRoles: "can_manage_roles",
   canManageConfig: "can_manage_config",
   canDeleteRecords: "can_delete_records",
   canViewAllRecords: "can_view_all_records",
+  canManagePmColumns: "can_manage_pm_columns",
+  canManagePmRules: "can_manage_pm_rules",
+  canViewReports: "can_view_reports",
+  canViewActivityLog: "can_view_activity_log",
+  canViewEngineerPerformance: "can_view_engineer_performance",
 };
 
 function emptyForm() {
@@ -96,13 +142,23 @@ export default function RolesClient() {
           <input required value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })}
             placeholder="e.g. Accountant" className="w-full border rounded-md px-3 py-2 text-sm" />
         </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          {PERMISSIONS.map((p) => (
-            <label key={p.key} className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" checked={form[p.key]}
-                onChange={(e) => setForm({ ...form, [p.key]: e.target.checked })} />
-              {p.label}
-            </label>
+        <div className="space-y-3">
+          {GROUPS.map((g) => (
+            <fieldset key={g.title} className="border rounded-md p-3">
+              <legend className="text-xs font-semibold text-gray-500 px-1">{g.title}</legend>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {g.permissions.map((p) => (
+                  <label key={p.key} className="flex items-start gap-2 text-sm text-gray-700">
+                    <input type="checkbox" className="mt-0.5" checked={form[p.key]}
+                      onChange={(e) => setForm({ ...form, [p.key]: e.target.checked })} />
+                    <span>
+                      {p.label}
+                      {p.hint && <span className="block text-[11px] text-gray-400">{p.hint}</span>}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
           ))}
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
@@ -115,11 +171,23 @@ export default function RolesClient() {
       <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
+            <tr className="text-left text-gray-500">
+              <th className="p-3 align-bottom" rowSpan={2}>Role</th>
+              {GROUPS.map((g) => (
+                <th key={g.title} colSpan={g.permissions.length}
+                  className="p-2 text-center border-b border-l bg-gray-50 text-xs font-semibold whitespace-nowrap">
+                  {g.title}
+                </th>
+              ))}
+              <th className="p-3 align-bottom" rowSpan={2}>Active</th>
+              <th className="p-3 align-bottom" rowSpan={2}></th>
+            </tr>
             <tr className="text-left text-gray-500 border-b">
-              <th className="p-3">Role</th>
-              {PERMISSIONS.map((p) => <th key={p.key} className="p-3 whitespace-nowrap">{p.label}</th>)}
-              <th className="p-3">Active</th>
-              <th className="p-3"></th>
+              {PERMISSIONS.map((p) => (
+                <th key={p.key} className="p-2 border-l font-normal text-xs whitespace-nowrap" title={p.hint || ""}>
+                  {p.label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -136,7 +204,7 @@ export default function RolesClient() {
                   <div className="text-xs text-gray-400 font-mono">{role.key}{role.is_system && " · system"}</div>
                 </td>
                 {PERMISSIONS.map((p) => (
-                  <td key={p.key} className="p-3">
+                  <td key={p.key} className="p-3 border-l">
                     <input type="checkbox" checked={!!role[COLUMN_BY_FIELD[p.key]]} disabled={role.is_system}
                       onChange={(e) => updateRole(role, { [p.key]: e.target.checked })} />
                   </td>

@@ -6,7 +6,7 @@ import RolesClient from "./RolesClient";
 export default async function RolesPage() {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (!session.canManageUsers) redirect("/dashboard");
+  if (!session.canManageRoles) redirect("/dashboard");
   return (
     <div>
       <NavBar session={session} />

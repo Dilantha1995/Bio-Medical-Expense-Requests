@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { requirePmAccess, requireCanManageConfig } from "@/lib/auth";
+import { requirePmAccess, requireCanManagePmRules } from "@/lib/auth";
 
 export async function GET() {
   try {
@@ -14,7 +14,7 @@ export async function GET() {
 
 export async function POST(req) {
   try {
-    await requireCanManageConfig();
+    await requireCanManagePmRules();
     const body = await req.json();
     const { fieldKey, operator, compareValue, color, textColor, label, applyTo, priority } = body;
 
