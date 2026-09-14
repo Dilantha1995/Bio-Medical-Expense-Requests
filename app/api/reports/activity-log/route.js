@@ -8,6 +8,9 @@ import { requireSession } from "@/lib/auth";
 export async function GET(req) {
   try {
     const session = await requireSession();
+    if (!session.canViewActivityLog) {
+      return NextResponse.json({ error: "You're not authorized to view the activity log." }, { status: 403 });
+    }
     const { searchParams } = new URL(req.url);
     const requestType = searchParams.get("requestType");
     const island = searchParams.get("island");

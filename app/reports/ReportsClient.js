@@ -5,16 +5,17 @@ import Link from "next/link";
 import { formatMVR } from "@/lib/calc";
 import { downloadCsv } from "@/lib/csv";
 
-const DOC_TYPES = [
+const ALL_DOC_TYPES = [
   { key: "requests", label: "Advance Requests" },
   { key: "bills", label: "Bill Summaries" },
   { key: "shipping", label: "Shipping Expenses" },
-  { key: "activity", label: "Activity Log" },
-  { key: "performance", label: "Engineer Performance" },
+  { key: "activity", label: "Activity Log", requires: "canViewActivityLog" },
+  { key: "performance", label: "Engineer Performance", requires: "canViewEngineerPerformance" },
 ];
 
 export default function ReportsClient({ session }) {
   const canFilterAll = session.canViewAllRecords;
+  const DOC_TYPES = ALL_DOC_TYPES.filter((d) => !d.requires || session[d.requires]);
 
   const [docType, setDocType] = useState("requests");
   const [from, setFrom] = useState("");

@@ -6,6 +6,7 @@ import ReportsClient from "./ReportsClient";
 export default async function ReportsPage() {
   const session = await getSession();
   if (!session) redirect("/login");
+  if (!session.canViewReports) redirect("/dashboard");
   return (
     <div>
       <NavBar session={session} />

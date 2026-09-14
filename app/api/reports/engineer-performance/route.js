@@ -5,6 +5,9 @@ import { requireSession } from "@/lib/auth";
 export async function GET(req) {
   try {
     const session = await requireSession();
+    if (!session.canViewEngineerPerformance) {
+      return NextResponse.json({ error: "You're not authorized to view engineer performance." }, { status: 403 });
+    }
     const { searchParams } = new URL(req.url);
     const from = searchParams.get("from");
     const to = searchParams.get("to");

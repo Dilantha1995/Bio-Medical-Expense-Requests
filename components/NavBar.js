@@ -45,7 +45,7 @@ function NavDropdown({ label, items, pathname }) {
 }
 
 export default function NavBar({ session }) {
-  const { fullName, canManageUsers, canManageConfig, canAccessPmDashboard, canViewAllRecords } = session;
+  const { fullName, canManageUsers, canManageRoles, canManageConfig, canAccessPmDashboard, canViewReports } = session;
   const router = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -71,11 +71,12 @@ export default function NavBar({ session }) {
     { href: "/shipping/new", label: "New Shipping Expense" },
   ];
   const adminLinks = [
-    ...(canManageUsers ? [{ href: "/admin/users", label: "Users" }, { href: "/admin/roles", label: "Roles" }] : []),
+    ...(canManageUsers ? [{ href: "/admin/users", label: "Users" }] : []),
+    ...(canManageRoles ? [{ href: "/admin/roles", label: "Roles" }] : []),
     ...(canManageConfig ? [{ href: "/configure", label: "Configure" }] : []),
   ];
   const showPm = canAccessPmDashboard;
-  const showReports = canViewAllRecords;
+  const showReports = canViewReports;
 
   // Mobile keeps a single flat, scrollable list rather than dropdowns.
   const mobileLinks = [

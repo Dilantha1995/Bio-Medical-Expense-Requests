@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { requireCanManageUsers } from "@/lib/auth";
+import { requireSession, requireCanManageRoles } from "@/lib/auth";
 
 const PERMISSION_FIELDS = [
   "canCheck", "canFinalApprove", "canManageMachines", "canAccessPmDashboard",
-  "canProcessPayments", "canManageUsers", "canManageConfig", "canDeleteRecords", "canViewAllRecords",
+  "canProcessPayments", "canManageUsers", "canManageRoles", "canManageConfig", "canDeleteRecords", "canViewAllRecords",
+  "canManagePmColumns", "canManagePmRules", "canViewReports", "canViewActivityLog", "canViewEngineerPerformance",
 ];
 const COLUMN_BY_FIELD = {
   canCheck: "can_check",
@@ -13,9 +14,15 @@ const COLUMN_BY_FIELD = {
   canAccessPmDashboard: "can_access_pm_dashboard",
   canProcessPayments: "can_process_payments",
   canManageUsers: "can_manage_users",
+  canManageRoles: "can_manage_roles",
   canManageConfig: "can_manage_config",
   canDeleteRecords: "can_delete_records",
   canViewAllRecords: "can_view_all_records",
+  canManagePmColumns: "can_manage_pm_columns",
+  canManagePmRules: "can_manage_pm_rules",
+  canViewReports: "can_view_reports",
+  canViewActivityLog: "can_view_activity_log",
+  canViewEngineerPerformance: "can_view_engineer_performance",
 };
 
 function slugify(label) {
@@ -29,7 +36,10 @@ function slugify(label) {
 
 export async function GET() {
   try {
-    await requireCanManageUsers();
+    const session = await requireSession();
+    if (!session.canManageUsers && !session.canManageRoles) {
+      return NextResponse.json({ error: "You're not authorized to view roles." }, { status: 403 });
+    }
     const { rows } = await query(`SELECT * FROM roles WHERE active=true ORDER BY sort_order ASC, id ASC`);
     return NextResponse.json({ roles: rows });
   } catch (e) {
@@ -39,7 +49,7 @@ export async function GET() {
 
 export async function POST(req) {
   try {
-    await requireCanManageUsers();
+    await requireCanManageRoles();
     const body = await req.json();
     const { label } = body;
     if (!label || !label.trim()) {

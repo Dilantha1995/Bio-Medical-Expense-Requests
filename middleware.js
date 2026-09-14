@@ -2,11 +2,18 @@ import { NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
 const PROTECTED_PREFIXES = ["/dashboard", "/requests", "/bills", "/shipping", "/admin", "/machines", "/pm", "/profile", "/configure", "/reports", "/change-password"];
-// /admin (Users, Roles) needs canManageUsers; the Configure page and PM
-// column/rule editors need canManageConfig — both come from the user's
-// role permission bundle (see lib/auth.js's createSessionToken).
-const USER_MGMT_PREFIXES = ["/admin"];
-const CONFIG_PREFIXES = ["/pm/fields", "/pm/rules", "/configure"];
+// Each area checks its own claim from the user's role permission bundle
+// (see lib/auth.js's createSessionToken) rather than one blanket "admin"
+// check — checked most-specific-prefix-first so /admin/users and
+// /admin/roles don't fall through to a shared /admin rule.
+const PREFIX_CHECKS = [
+  { prefix: "/admin/users", claim: "canManageUsers" },
+  { prefix: "/admin/roles", claim: "canManageRoles" },
+  { prefix: "/pm/fields", claim: "canManagePmColumns" },
+  { prefix: "/pm/rules", claim: "canManagePmRules" },
+  { prefix: "/configure", claim: "canManageConfig" },
+  { prefix: "/reports", claim: "canViewReports" },
+];
 
 export async function middleware(req) {
   const { pathname } = req.nextUrl;
@@ -26,13 +33,10 @@ export async function middleware(req) {
       return NextResponse.redirect(new URL("/change-password", req.url));
     }
 
-    const needsUserMgmt = USER_MGMT_PREFIXES.some((p) => pathname.startsWith(p));
-    if (needsUserMgmt && !payload.canManageUsers) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
-    }
-    const needsConfig = CONFIG_PREFIXES.some((p) => pathname.startsWith(p));
-    if (needsConfig && !payload.canManageConfig) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
+    for (const { prefix, claim } of PREFIX_CHECKS) {
+      if (pathname.startsWith(prefix) && !payload[claim]) {
+        return NextResponse.redirect(new URL("/dashboard", req.url));
+      }
     }
     return NextResponse.next();
   } catch {

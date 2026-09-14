@@ -137,11 +137,11 @@ export default function PmDashboardClient({ session }) {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-xl font-semibold text-brand-navy">PM &amp; Installation Schedule</h1>
         <div className="flex gap-2">
-          {session.canManageConfig && (
-            <>
-              <Link href="/pm/fields" className="text-sm border rounded-md px-3 py-1.5">Columns</Link>
-              <Link href="/pm/rules" className="text-sm border rounded-md px-3 py-1.5">Color rules</Link>
-            </>
+          {session.canManagePmColumns && (
+            <Link href="/pm/fields" className="text-sm border rounded-md px-3 py-1.5">Columns</Link>
+          )}
+          {session.canManagePmRules && (
+            <Link href="/pm/rules" className="text-sm border rounded-md px-3 py-1.5">Color rules</Link>
           )}
           <button onClick={openNew} className="text-sm bg-brand-navy text-white px-3 py-1.5 rounded-md">+ Add Entry</button>
         </div>
@@ -149,7 +149,7 @@ export default function PmDashboardClient({ session }) {
 
       {fields.length === 0 && !loading && (
         <p className="text-sm text-gray-500">
-          No columns configured yet.{session.canManageConfig ? (
+          No columns configured yet.{session.canManagePmColumns ? (
             <> Go to <Link href="/pm/fields" className="text-brand-navy hover:underline">Columns</Link> to set up fields like Status, Next PM Date, and Assigned Engineer.</>
           ) : " Ask an admin to set up the schedule columns."}
         </p>

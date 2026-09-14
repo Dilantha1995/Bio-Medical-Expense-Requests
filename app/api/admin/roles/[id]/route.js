@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { requireCanManageUsers } from "@/lib/auth";
+import { requireCanManageRoles } from "@/lib/auth";
 
 const COLUMN_BY_FIELD = {
   canCheck: "can_check",
@@ -9,14 +9,20 @@ const COLUMN_BY_FIELD = {
   canAccessPmDashboard: "can_access_pm_dashboard",
   canProcessPayments: "can_process_payments",
   canManageUsers: "can_manage_users",
+  canManageRoles: "can_manage_roles",
   canManageConfig: "can_manage_config",
   canDeleteRecords: "can_delete_records",
   canViewAllRecords: "can_view_all_records",
+  canManagePmColumns: "can_manage_pm_columns",
+  canManagePmRules: "can_manage_pm_rules",
+  canViewReports: "can_view_reports",
+  canViewActivityLog: "can_view_activity_log",
+  canViewEngineerPerformance: "can_view_engineer_performance",
 };
 
 export async function PATCH(req, { params }) {
   try {
-    await requireCanManageUsers();
+    await requireCanManageRoles();
     const body = await req.json();
     const { label, active, sortOrder, ...permissionFields } = body;
 
@@ -66,7 +72,7 @@ export async function PATCH(req, { params }) {
 
 export async function DELETE(req, { params }) {
   try {
-    await requireCanManageUsers();
+    await requireCanManageRoles();
     const existing = await query(`SELECT * FROM roles WHERE id=$1`, [params.id]);
     const role = existing.rows[0];
     if (!role) return NextResponse.json({ error: "Role not found." }, { status: 404 });
