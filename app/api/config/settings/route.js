@@ -5,6 +5,7 @@ import { requireSession, requireCanManageConfig } from "@/lib/auth";
 const DEFAULTS = {
   timezone: "Indian/Maldives",
   currency: "MVR",
+  signaturesEnabled: "true",
 };
 
 export async function GET() {

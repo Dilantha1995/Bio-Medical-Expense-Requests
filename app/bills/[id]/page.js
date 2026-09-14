@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { getBillSummaryById, getAppSettings } from "@/lib/data";
+import { getBillSummaryById, getAppSettings, withSignatureSetting } from "@/lib/data";
 import NavBar from "@/components/NavBar";
 import PrintableForm from "@/components/PrintableForm";
 import ActionsBar from "../../requests/[id]/ActionsBar";
@@ -14,7 +14,7 @@ export default async function BillDetailPage({ params }) {
   const appSettings = await getAppSettings();
 
   const doc = {
-    ...record,
+    ...withSignatureSetting(record, appSettings),
     docTitle: "Summary of Bills",
     dateValue: record.summary_date,
   };
