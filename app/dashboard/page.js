@@ -9,9 +9,9 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <NavBar fullName={session.fullName} role={session.role} canAccessPmDashboard={session.canAccessPmDashboard} />
+      <NavBar session={session} />
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6">
-        <DashboardClient role={session.role} />
+        <DashboardClient session={session} />
       </main>
     </div>
   );

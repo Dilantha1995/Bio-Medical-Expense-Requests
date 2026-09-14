@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { requireSession, requireRole } from "@/lib/auth";
+import { requireSession, requireCanManageConfig } from "@/lib/auth";
 
 export async function GET() {
   try {
@@ -16,7 +16,7 @@ export async function GET() {
 
 export async function POST(req) {
   try {
-    await requireRole("admin");
+    await requireCanManageConfig();
     const { label } = await req.json();
     if (!label || !label.trim()) {
       return NextResponse.json({ error: "Label is required." }, { status: 400 });

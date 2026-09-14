@@ -2,12 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-const ROLES = [
-  { value: "engineer", label: "Engineer" },
-  { value: "approver", label: "Approver" },
-  { value: "admin", label: "Admin" },
-];
-
 function emptyForm() {
   return { username: "", password: "", fullName: "", initials: "", designation: "", role: "engineer", canFinalApprove: false, canManageMachines: false, canAccessPmDashboard: false, canProcessPayments: false };
 }
@@ -15,6 +9,7 @@ function emptyForm() {
 export default function AdminUsersClient() {
   const [users, setUsers] = useState([]);
   const [designations, setDesignations] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyForm());
   const [error, setError] = useState("");
@@ -22,11 +17,15 @@ export default function AdminUsersClient() {
 
   async function load() {
     setLoading(true);
-    const [uRes, dRes] = await Promise.all([fetch("/api/admin/users"), fetch("/api/config/designations")]);
+    const [uRes, dRes, rRes] = await Promise.all([
+      fetch("/api/admin/users"), fetch("/api/config/designations"), fetch("/api/admin/roles"),
+    ]);
     const uData = await uRes.json();
     const dData = await dRes.json();
+    const rData = await rRes.json();
     setUsers(uData.users || []);
     setDesignations(dData.options || []);
+    setRoles(rData.roles || []);
     setLoading(false);
   }
 
@@ -105,10 +104,10 @@ export default function AdminUsersClient() {
           <label className="block text-xs font-medium text-gray-600 mb-1">Role</label>
           <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
             className="w-full border rounded-md px-3 py-2 text-sm">
-            {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+            {roles.map((r) => <option key={r.id} value={r.key}>{r.label}</option>)}
           </select>
         </div>
-        {form.role === "approver" && (
+        {form.role !== "admin" && (
           <div className="flex items-center gap-2 sm:col-span-3">
             <input type="checkbox" id="cfa" checked={form.canFinalApprove}
               onChange={(e) => setForm({ ...form, canFinalApprove: e.target.checked })} />
@@ -169,7 +168,7 @@ export default function AdminUsersClient() {
                 <td className="p-3">
                   <select value={u.role} onChange={(e) => updateUser(u.id, { role: e.target.value })}
                     className="border rounded px-2 py-1 text-xs">
-                    {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                    {roles.map((r) => <option key={r.id} value={r.key}>{r.label}</option>)}
                   </select>
                 </td>
                 <td className="p-3">

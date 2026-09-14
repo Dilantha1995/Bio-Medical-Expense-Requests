@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { requireRole, hashPassword } from "@/lib/auth";
+import { requireCanManageUsers, hashPassword } from "@/lib/auth";
 
 export async function GET() {
   try {
-    await requireRole("admin");
+    await requireCanManageUsers();
     const { rows } = await query(
       `SELECT id, username, full_name, initials, designation, role, can_final_approve, can_manage_machines, can_access_pm_dashboard, can_process_payments, must_change_password, active, created_at
        FROM users ORDER BY created_at DESC`
@@ -17,14 +17,15 @@ export async function GET() {
 
 export async function POST(req) {
   try {
-    await requireRole("admin");
+    await requireCanManageUsers();
     const body = await req.json();
     const { username, password, fullName, initials, designation, role, canFinalApprove, canManageMachines, canAccessPmDashboard, canProcessPayments } = body;
 
     if (!username || !password || !fullName || !initials || !role) {
       return NextResponse.json({ error: "Username, password, full name, initials, and role are required." }, { status: 400 });
     }
-    if (!["engineer", "approver", "admin"].includes(role)) {
+    const roleCheck = await query(`SELECT 1 FROM roles WHERE key=$1 AND active=true`, [role]);
+    if (roleCheck.rows.length === 0) {
       return NextResponse.json({ error: "Invalid role." }, { status: 400 });
     }
     if (password.length < 6) {

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { requireRole } from "@/lib/auth";
+import { requireCanManageConfig } from "@/lib/auth";
 
 export async function PATCH(req, { params }) {
   try {
-    await requireRole("admin");
+    await requireCanManageConfig();
     const body = await req.json();
     const { sortOrder, active } = body;
 
@@ -31,7 +31,7 @@ export async function PATCH(req, { params }) {
 
 export async function DELETE(req, { params }) {
   try {
-    await requireRole("admin");
+    await requireCanManageConfig();
     await query(`UPDATE option_lists SET active=false WHERE id=$1 AND list_key=$2`, [params.id, params.listKey]);
     return NextResponse.json({ ok: true });
   } catch (e) {

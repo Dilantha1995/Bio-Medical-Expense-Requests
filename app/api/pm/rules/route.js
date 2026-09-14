@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { requirePmAccess, requireRole } from "@/lib/auth";
+import { requirePmAccess, requireCanManageConfig } from "@/lib/auth";
 
 export async function GET() {
   try {
@@ -14,7 +14,7 @@ export async function GET() {
 
 export async function POST(req) {
   try {
-    await requireRole("admin");
+    await requireCanManageConfig();
     const body = await req.json();
     const { fieldKey, operator, compareValue, color, textColor, label, applyTo, priority } = body;
 

@@ -10,7 +10,7 @@ function emptyForm() {
 }
 
 export default function MachinesClient({ session }) {
-  const canManage = session.role === "admin" || session.canManageMachines;
+  const canManage = session.canManageMachines;
   const [machines, setMachines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");

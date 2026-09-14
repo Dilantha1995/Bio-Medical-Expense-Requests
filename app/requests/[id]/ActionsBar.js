@@ -20,17 +20,17 @@ export default function ActionsBar({ id, kind, status, session, returnedAt, paym
   const slipInputRef = useRef(null);
 
   const isOwner = session.id === engineerId;
-  const canCheck = ["approver", "admin"].includes(session.role) && status === "submitted";
-  const canApprove = (session.canFinalApprove || session.role === "admin") && status === "checked";
-  const canReject = ["approver", "admin"].includes(session.role) && ["submitted", "checked"].includes(status);
-  const canMarkReturned = kind === "requests" && ["approver", "admin"].includes(session.role) && status === "approved";
-  const canDelete = session.role === "admin" && status !== "deleted";
-  const canProcessPayment = (session.role === "admin" || session.canProcessPayments) && status === "approved";
+  const canCheck = session.canCheck && status === "submitted";
+  const canApprove = session.canFinalApprove && status === "checked";
+  const canReject = session.canCheck && ["submitted", "checked"].includes(status);
+  const canMarkReturned = kind === "requests" && session.canCheck && status === "approved";
+  const canDelete = session.canDeleteRecords && status !== "deleted";
+  const canProcessPayment = session.canProcessPayments && status === "approved";
   const paymentIsFinal = paymentStatus === "processed";
   const canMarkTaskCompleted = kind === "requests" && status === "approved" && !taskCompletedAt
-    && (isOwner || ["approver", "admin"].includes(session.role));
+    && (isOwner || session.canCheck);
   const canRequestExtension = kind === "requests" && status === "approved" && !taskCompletedAt && !isExtensionPending
-    && (isOwner || session.role === "admin");
+    && (isOwner || session.canManageUsers);
 
   async function doAction(action, extra) {
     setBusy(true);

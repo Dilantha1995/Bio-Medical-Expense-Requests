@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { requireRole } from "@/lib/auth";
+import { requireCanViewAllRecords } from "@/lib/auth";
 
 export async function GET() {
   try {
-    await requireRole("admin", "approver");
+    await requireCanViewAllRecords();
     const { rows } = await query(
       `SELECT id, full_name, initials FROM users WHERE role='engineer' AND active=true ORDER BY full_name ASC`
     );

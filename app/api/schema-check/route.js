@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth";
+import { requireCanManageConfig } from "@/lib/auth";
 import { checkSchemaHealth } from "@/lib/schemaCheck";
 
 export const runtime = "nodejs";
 
 export async function GET() {
   try {
-    await requireRole("admin");
+    await requireCanManageConfig();
     const health = await checkSchemaHealth();
     return NextResponse.json(health);
   } catch (e) {

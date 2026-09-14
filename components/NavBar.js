@@ -44,19 +44,20 @@ function NavDropdown({ label, items, pathname }) {
   );
 }
 
-export default function NavBar({ fullName, role, canAccessPmDashboard }) {
+export default function NavBar({ session }) {
+  const { fullName, canManageUsers, canManageConfig, canAccessPmDashboard, canViewAllRecords } = session;
   const router = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [schemaWarning, setSchemaWarning] = useState(null);
 
   useEffect(() => {
-    if (role !== "admin") return;
+    if (!canManageConfig) return;
     fetch("/api/schema-check")
       .then((r) => r.json())
       .then((d) => { if (!d.ok) setSchemaWarning(d.missing || []); })
       .catch(() => {});
-  }, [role]);
+  }, [canManageConfig]);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -70,11 +71,11 @@ export default function NavBar({ fullName, role, canAccessPmDashboard }) {
     { href: "/shipping/new", label: "New Shipping Expense" },
   ];
   const adminLinks = [
-    ...(role === "admin" ? [{ href: "/admin/users", label: "Users" }] : []),
-    ...(role === "admin" ? [{ href: "/configure", label: "Configure" }] : []),
+    ...(canManageUsers ? [{ href: "/admin/users", label: "Users" }, { href: "/admin/roles", label: "Roles" }] : []),
+    ...(canManageConfig ? [{ href: "/configure", label: "Configure" }] : []),
   ];
-  const showPm = role === "admin" || canAccessPmDashboard;
-  const showReports = role === "admin" || role === "approver";
+  const showPm = canAccessPmDashboard;
+  const showReports = canViewAllRecords;
 
   // Mobile keeps a single flat, scrollable list rather than dropdowns.
   const mobileLinks = [

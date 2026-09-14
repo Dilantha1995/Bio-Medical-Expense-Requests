@@ -10,7 +10,7 @@ export async function GET(req, { params }) {
     const session = await requireSession();
     const record = await fetchRequest(params.id);
     if (!record) return NextResponse.json({ error: "Not found." }, { status: 404 });
-    if (session.role === "engineer" && record.engineer_id !== session.id) {
+    if (!session.canViewAllRecords && record.engineer_id !== session.id) {
       return NextResponse.json({ error: "Forbidden." }, { status: 403 });
     }
     return NextResponse.json({ request: record });
@@ -26,7 +26,7 @@ export async function PATCH(req, { params }) {
     const link = `/requests/${params.id}`;
 
     if (action === "mark_returned") {
-      if (!["approver", "admin"].includes(session.role)) {
+      if (!session.canCheck) {
         return NextResponse.json({ error: "Only approvers/supervisors can mark an engineer as returned." }, { status: 403 });
       }
       const before = await fetchRequest(params.id);
@@ -40,7 +40,7 @@ export async function PATCH(req, { params }) {
     }
 
     if (action === "delete") {
-      if (session.role !== "admin") {
+      if (!session.canDeleteRecords) {
         return NextResponse.json({ error: "Only admins can delete entries." }, { status: 403 });
       }
       if (!reason || !reason.trim()) {
@@ -58,7 +58,7 @@ export async function PATCH(req, { params }) {
     }
 
     if (action === "start_payment" || action === "mark_payment_processed" || action === "reject_payment") {
-      if (session.role !== "admin" && !session.canProcessPayments) {
+      if (!session.canProcessPayments) {
         return NextResponse.json({ error: "You're not authorized to process payments." }, { status: 403 });
       }
       const before = await fetchRequest(params.id);
@@ -100,7 +100,7 @@ export async function PATCH(req, { params }) {
       const before = await fetchRequest(params.id);
       if (!before) return NextResponse.json({ error: "Not found." }, { status: 404 });
       const isOwner = before.engineer_id === session.id;
-      if (!isOwner && !["approver", "admin"].includes(session.role)) {
+      if (!isOwner && !session.canCheck) {
         return NextResponse.json({ error: "You're not authorized to mark this task completed." }, { status: 403 });
       }
       if (before.status !== "approved") {
@@ -121,7 +121,7 @@ export async function PATCH(req, { params }) {
       const before = await fetchRequest(params.id);
       if (!before) return NextResponse.json({ error: "Not found." }, { status: 404 });
       const isOwner = before.engineer_id === session.id;
-      if (!isOwner && session.role !== "admin") {
+      if (!isOwner && !session.canManageUsers) {
         return NextResponse.json({ error: "Only the engineer who submitted this request (or an admin) can request an extension." }, { status: 403 });
       }
       if (before.status !== "approved") {
@@ -172,7 +172,7 @@ export async function PATCH(req, { params }) {
       return NextResponse.json({ request: updated });
     }
 
-    if (!["approver", "admin"].includes(session.role)) {
+    if (!session.canCheck) {
       return NextResponse.json({ error: "Only approvers can perform this action." }, { status: 403 });
     }
 
@@ -191,7 +191,7 @@ export async function PATCH(req, { params }) {
       const approverIds = await getFinalApproverIds();
       await notifyMany(approverIds, "Approval needed", `${record.ref_number} (${record.engineer_name}) is ready for your approval.`, link);
     } else if (action === "approve") {
-      if (!session.canFinalApprove && session.role !== "admin") {
+      if (!session.canFinalApprove) {
         return NextResponse.json({ error: "You are not authorized to give final approval." }, { status: 403 });
       }
       if (record.status !== "checked") {

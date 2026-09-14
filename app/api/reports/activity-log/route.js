@@ -36,7 +36,7 @@ export async function GET(req) {
     const params = [];
     const conditions = [];
 
-    if (session.role === "engineer") {
+    if (!session.canViewAllRecords) {
       params.push(session.id);
       conditions.push(`ar.engineer_id = $${params.length}`);
     } else if (engineerId) {

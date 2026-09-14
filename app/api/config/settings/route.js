@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { requireSession, requireRole } from "@/lib/auth";
+import { requireSession, requireCanManageConfig } from "@/lib/auth";
 
 const DEFAULTS = {
   timezone: "Indian/Maldives",
@@ -21,7 +21,7 @@ export async function GET() {
 
 export async function PATCH(req) {
   try {
-    await requireRole("admin");
+    await requireCanManageConfig();
     const body = await req.json();
     const entries = Object.entries(body);
     for (const [key, value] of entries) {

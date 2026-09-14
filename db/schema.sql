@@ -318,6 +318,41 @@ CREATE INDEX IF NOT EXISTS idx_shipping_engineer ON shipping_expense_requests(en
 -- Admin-defined conditional formatting rules for the PM schedule grid.
 -- Evaluated in priority order (lowest first); the first matching rule
 -- for a cell (or row, if apply_to='row') wins.
+-- Configurable roles: each role is a named bundle of permissions, so an
+-- admin can create roles beyond the original engineer/approver/admin
+-- three (e.g. "Accountant") without any code change. users.role stores
+-- the role's key (soft reference, no FK — matches the style of other
+-- free-text enum-like columns in this schema, e.g. advance_requests.company).
+-- The engineer/approver/admin system roles are seeded to reproduce
+-- exactly what the hardcoded 3-tier system did before this table existed.
+CREATE TABLE IF NOT EXISTS roles (
+  id SERIAL PRIMARY KEY,
+  key TEXT UNIQUE NOT NULL,
+  label TEXT NOT NULL,
+  is_system BOOLEAN NOT NULL DEFAULT FALSE,
+  can_check BOOLEAN NOT NULL DEFAULT FALSE,
+  can_final_approve BOOLEAN NOT NULL DEFAULT FALSE,
+  can_manage_machines BOOLEAN NOT NULL DEFAULT FALSE,
+  can_access_pm_dashboard BOOLEAN NOT NULL DEFAULT FALSE,
+  can_process_payments BOOLEAN NOT NULL DEFAULT FALSE,
+  can_manage_users BOOLEAN NOT NULL DEFAULT FALSE,
+  can_manage_config BOOLEAN NOT NULL DEFAULT FALSE,
+  can_delete_records BOOLEAN NOT NULL DEFAULT FALSE,
+  can_view_all_records BOOLEAN NOT NULL DEFAULT FALSE,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+INSERT INTO roles
+  (key, label, is_system, can_check, can_final_approve, can_manage_machines, can_access_pm_dashboard,
+   can_process_payments, can_manage_users, can_manage_config, can_delete_records, can_view_all_records, sort_order)
+VALUES
+  ('engineer', 'Engineer', true, false, false, false, false, false, false, false, false, false, 0),
+  ('approver', 'Approver', true, true,  false, false, false, false, false, false, false, true,  1),
+  ('admin',    'Admin',    true, true,  true,  true,  true,  true,  true,  true,  true,  true,  2)
+ON CONFLICT (key) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS pm_conditional_rules (
   id SERIAL PRIMARY KEY,
   field_key TEXT NOT NULL,

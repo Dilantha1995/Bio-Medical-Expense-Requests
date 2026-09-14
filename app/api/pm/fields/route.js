@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { requirePmAccess, requireRole } from "@/lib/auth";
+import { requirePmAccess, requireCanManageConfig } from "@/lib/auth";
 
 function slugify(label) {
   return label.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60);
@@ -18,7 +18,7 @@ export async function GET() {
 
 export async function POST(req) {
   try {
-    await requireRole("admin");
+    await requireCanManageConfig();
     const body = await req.json();
     const { label, fieldType, options } = body;
 

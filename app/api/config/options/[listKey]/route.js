@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { requireSession, requireRole } from "@/lib/auth";
+import { requireSession, requireCanManageConfig } from "@/lib/auth";
 
 // Lists that anyone filling in a form is allowed to extend inline via a
 // "+ Add new..." option (SelectWithAdd component). Everything else (e.g.
@@ -32,7 +32,7 @@ export async function POST(req, { params }) {
     if (OPEN_ADD_LIST_KEYS.has(params.listKey)) {
       await requireSession();
     } else {
-      await requireRole("admin");
+      await requireCanManageConfig();
     }
     ({ label } = await req.json());
     if (!label || !label.trim()) {

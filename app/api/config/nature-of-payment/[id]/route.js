@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { requireRole } from "@/lib/auth";
+import { requireCanManageConfig } from "@/lib/auth";
 
 export async function PATCH(req, { params }) {
   try {
-    await requireRole("admin");
+    await requireCanManageConfig();
     const body = await req.json();
     const { label, sortOrder, active } = body;
 
@@ -29,7 +29,7 @@ export async function PATCH(req, { params }) {
 
 export async function DELETE(req, { params }) {
   try {
-    await requireRole("admin");
+    await requireCanManageConfig();
     // Soft-delete (mark inactive) so past bill summaries referencing this
     // label by name still display correctly.
     await query(`UPDATE nature_of_payment_options SET active=false WHERE id=$1`, [params.id]);

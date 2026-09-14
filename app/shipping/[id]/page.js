@@ -10,7 +10,7 @@ export default async function ShippingDetailPage({ params }) {
   if (!session) redirect("/login");
   const record = await getShippingRequestById(params.id);
   if (!record) notFound();
-  if (session.role === "engineer" && record.engineer_id !== session.id) redirect("/dashboard");
+  if (!session.canViewAllRecords && record.engineer_id !== session.id) redirect("/dashboard");
   const appSettings = await getAppSettings();
 
   const doc = {
@@ -21,7 +21,7 @@ export default async function ShippingDetailPage({ params }) {
 
   return (
     <div>
-      <NavBar fullName={session.fullName} role={session.role} canAccessPmDashboard={session.canAccessPmDashboard} />
+      <NavBar session={session} />
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 print:hidden">
           <h1 className="text-lg sm:text-xl font-semibold text-brand-navy break-all">Shipping Expense Request {record.ref_number}</h1>
