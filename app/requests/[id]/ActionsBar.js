@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { resizeImageFile } from "@/lib/imageResize";
 
-export default function ActionsBar({ id, kind, status, session, returnedAt, paymentStatus }) {
+export default function ActionsBar({ id, kind, status, session, returnedAt, paymentStatus, engineerId, taskCompletedAt, isExtensionPending, expectedEndDate }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -14,8 +14,12 @@ export default function ActionsBar({ id, kind, status, session, returnedAt, paym
   const [deleteReason, setDeleteReason] = useState("");
   const [showRejectPaymentBox, setShowRejectPaymentBox] = useState(false);
   const [rejectPaymentReason, setRejectPaymentReason] = useState("");
+  const [showExtensionBox, setShowExtensionBox] = useState(false);
+  const [extensionDate, setExtensionDate] = useState("");
+  const [extensionReason, setExtensionReason] = useState("");
   const slipInputRef = useRef(null);
 
+  const isOwner = session.id === engineerId;
   const canCheck = ["approver", "admin"].includes(session.role) && status === "submitted";
   const canApprove = (session.canFinalApprove || session.role === "admin") && status === "checked";
   const canReject = ["approver", "admin"].includes(session.role) && ["submitted", "checked"].includes(status);
@@ -23,6 +27,10 @@ export default function ActionsBar({ id, kind, status, session, returnedAt, paym
   const canDelete = session.role === "admin" && status !== "deleted";
   const canProcessPayment = (session.role === "admin" || session.canProcessPayments) && status === "approved";
   const paymentIsFinal = paymentStatus === "processed";
+  const canMarkTaskCompleted = kind === "requests" && status === "approved" && !taskCompletedAt
+    && (isOwner || ["approver", "admin"].includes(session.role));
+  const canRequestExtension = kind === "requests" && status === "approved" && !taskCompletedAt && !isExtensionPending
+    && (isOwner || session.role === "admin");
 
   async function doAction(action, extra) {
     setBusy(true);
@@ -46,6 +54,7 @@ export default function ActionsBar({ id, kind, status, session, returnedAt, paym
     setShowReturnPicker(false);
     setShowDeleteBox(false);
     setShowRejectPaymentBox(false);
+    setShowExtensionBox(false);
     router.refresh();
   }
 
@@ -61,6 +70,12 @@ export default function ActionsBar({ id, kind, status, session, returnedAt, paym
   function confirmRejectPayment() {
     if (!rejectPaymentReason.trim()) { setError("A reason is required."); return; }
     doAction("reject_payment", { reason: rejectPaymentReason.trim() });
+  }
+
+  function confirmExtension() {
+    if (!extensionDate) { setError("A new end date is required."); return; }
+    if (!extensionReason.trim()) { setError("A reason is required."); return; }
+    doAction("request_extension", { newEndDate: extensionDate, reason: extensionReason.trim() });
   }
 
   async function handleSlipUpload(e) {
@@ -103,6 +118,18 @@ export default function ActionsBar({ id, kind, status, session, returnedAt, paym
           <button onClick={() => setShowReturnPicker(true)} disabled={busy}
             className="text-sm bg-amber-600 text-white px-3 py-2 sm:py-1.5 rounded-md disabled:opacity-50">
             {returnedAt ? "Update Return Date" : "Mark Returned"}
+          </button>
+        )}
+        {canMarkTaskCompleted && (
+          <button onClick={() => doAction("mark_task_completed")} disabled={busy}
+            className="text-sm bg-teal-600 text-white px-3 py-2 sm:py-1.5 rounded-md disabled:opacity-50">
+            Mark Task Completed
+          </button>
+        )}
+        {canRequestExtension && !showExtensionBox && (
+          <button onClick={() => { setShowExtensionBox(true); setExtensionDate(expectedEndDate ? expectedEndDate.slice(0, 10) : ""); }} disabled={busy}
+            className="text-sm border border-amber-500 text-amber-700 px-3 py-2 sm:py-1.5 rounded-md disabled:opacity-50">
+            Request Extension
           </button>
         )}
         {canProcessPayment && !paymentIsFinal && paymentStatus !== "processing" && (
@@ -153,6 +180,24 @@ export default function ActionsBar({ id, kind, status, session, returnedAt, paym
           <button onClick={() => setShowReturnPicker(false)} className="text-sm border px-3 py-1.5 rounded-md">
             Cancel
           </button>
+        </div>
+      )}
+
+      {canRequestExtension && showExtensionBox && (
+        <div className="mt-2 flex flex-wrap items-center gap-2 bg-amber-50 border border-amber-200 rounded-md p-2">
+          <label className="text-xs text-amber-800">New end date:</label>
+          <input type="date" value={extensionDate} onChange={(e) => setExtensionDate(e.target.value)}
+            className="border rounded px-2 py-1.5 text-sm" />
+          <input value={extensionReason} onChange={(e) => setExtensionReason(e.target.value)}
+            placeholder="Reason for extension" className="border rounded px-2 py-1.5 text-sm flex-1 min-w-[160px]" />
+          <button onClick={confirmExtension} disabled={busy}
+            className="text-sm bg-amber-600 text-white px-3 py-1.5 rounded-md disabled:opacity-50">
+            {busy ? "Saving..." : "Submit Extension"}
+          </button>
+          <button onClick={() => setShowExtensionBox(false)} className="text-sm border px-3 py-1.5 rounded-md">
+            Cancel
+          </button>
+          <p className="text-xs text-amber-700 w-full">This will send the request back through checking &amp; approval for the extension.</p>
         </div>
       )}
 

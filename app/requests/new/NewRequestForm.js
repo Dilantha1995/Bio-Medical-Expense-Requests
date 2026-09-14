@@ -6,6 +6,7 @@ import LineItemsTable from "@/components/LineItemsTable";
 import PreviewModal from "@/components/PreviewModal";
 import SubmitActions from "@/components/SubmitActions";
 import CompanySelector from "@/components/CompanySelector";
+import SelectWithAdd from "@/components/SelectWithAdd";
 import { emptyLineItem } from "@/lib/calc";
 
 function blankState() {
@@ -16,7 +17,16 @@ function blankState() {
     notes: "",
     items: [emptyLineItem()],
     company: "PSMS",
+    requestType: "",
+    expectedEndDate: "",
   };
+}
+
+// Latest "to date" across all legs, used to suggest an Expected Completion
+// Date without forcing the user to re-type something already on the form.
+function latestToDate(items) {
+  const dates = items.map((it) => it.toDate).filter(Boolean).sort();
+  return dates[dates.length - 1] || "";
 }
 
 export default function NewRequestForm() {
@@ -39,6 +49,15 @@ export default function NewRequestForm() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  function setItems(items) {
+    setForm((f) => ({
+      ...f,
+      items,
+      // Only auto-suggest the end date while the user hasn't set one manually.
+      expectedEndDate: f.expectedEndDate || latestToDate(items),
+    }));
+  }
+
   async function handleSubmit(mode) {
     setError("");
     setSuccessBanner("");
@@ -54,6 +73,8 @@ export default function NewRequestForm() {
           notes: form.notes,
           lineItems: form.items,
           company: form.company,
+          requestType: form.requestType,
+          expectedEndDate: form.expectedEndDate,
         }),
       });
       const data = await res.json();
@@ -104,6 +125,17 @@ export default function NewRequestForm() {
         <div className="sm:col-span-3">
           <CompanySelector value={form.company} onChange={(v) => set("company", v)} />
         </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Type of Travel Advance</label>
+          <SelectWithAdd listKey="travel_advance_type" canAdd={false} value={form.requestType}
+            onChange={(v) => set("requestType", v)} placeholder="-- select type --" />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Expected Completion Date</label>
+          <input type="date" required value={form.expectedEndDate} onChange={(e) => set("expectedEndDate", e.target.value)}
+            className="w-full border rounded-md px-3 py-2 text-sm" />
+          <p className="text-xs text-gray-400 mt-1">Drives a reminder to you 1 day before this date if the task isn't marked done.</p>
+        </div>
         <div className="sm:col-span-3">
           <label className="block text-sm font-medium text-gray-700 mb-1">Purpose of Travel</label>
           <input value={form.purposeOfTravel} onChange={(e) => set("purposeOfTravel", e.target.value)}
@@ -120,7 +152,7 @@ export default function NewRequestForm() {
       <div className="bg-white p-4 rounded-lg shadow-sm">
         <h2 className="text-sm font-semibold text-gray-600 mb-2">Trip Locations &amp; Expenses</h2>
         <p className="text-xs text-gray-400 mb-2">Add one row per island/leg if you're visiting multiple locations on this trip.</p>
-        <LineItemsTable items={form.items} onChange={(items) => set("items", items)} />
+        <LineItemsTable items={form.items} onChange={setItems} />
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -139,6 +171,8 @@ export default function NewRequestForm() {
             ["Date", form.requestDate],
             ["Company", form.company],
             ["Trip summary", form.destinationLabel],
+            ["Type", form.requestType],
+            ["Expected Completion Date", form.expectedEndDate],
             ["Purpose of Travel", form.purposeOfTravel],
             ["Notes", form.notes],
           ]}

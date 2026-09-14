@@ -68,19 +68,22 @@ function DeletedBadge() {
 export default function DashboardClient({ role }) {
   const [requests, setRequests] = useState([]);
   const [bills, setBills] = useState([]);
+  const [shipping, setShipping] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currency, setCurrency] = useState("MVR");
 
   async function load() {
     setLoading(true);
-    const [r1, r2, r3] = await Promise.all([
+    const [r1, r2, r3, r4] = await Promise.all([
       fetch("/api/requests").then((r) => r.json()),
       fetch("/api/bills").then((r) => r.json()),
       fetch("/api/config/settings").then((r) => r.json()),
+      fetch("/api/shipping").then((r) => r.json()),
     ]);
     setRequests(r1.requests || []);
     setBills(r2.bills || []);
     setCurrency(r3.settings?.currency || "MVR");
+    setShipping(r4.shipping || []);
     setLoading(false);
   }
 
@@ -98,6 +101,9 @@ export default function DashboardClient({ role }) {
           </Link>
           <Link href="/bills/new" className="flex-1 sm:flex-none text-center text-sm bg-brand-teal text-white px-3 py-2 sm:py-1.5 rounded-md">
             + Bill Summary
+          </Link>
+          <Link href="/shipping/new" className="flex-1 sm:flex-none text-center text-sm bg-amber-600 text-white px-3 py-2 sm:py-1.5 rounded-md">
+            + Shipping Expense
           </Link>
         </div>
       </div>
@@ -245,6 +251,74 @@ export default function DashboardClient({ role }) {
                         </div>
                       </td>
                       <td className="p-3"><PaymentBadge status={b.payment_status} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-sm font-semibold text-gray-600 mb-2">Shipping Expense Requests</h2>
+
+            {/* Mobile: cards */}
+            <div className="sm:hidden space-y-2">
+              {shipping.length === 0 && (
+                <p className="bg-white rounded-lg shadow-sm p-4 text-center text-gray-400 text-sm">No shipping expense requests yet.</p>
+              )}
+              {shipping.map((s) => (
+                <Link key={s.id} href={`/shipping/${s.id}`} className={`block bg-white rounded-lg shadow-sm p-3 active:bg-gray-50 ${s.deleted_at ? "opacity-60" : ""}`}>
+                  <div className="flex items-center justify-between mb-1 gap-1 flex-wrap">
+                    <span className="text-brand-navy font-medium text-sm">{s.ref_number}</span>
+                    <div className="flex gap-1">
+                      {s.deleted_at && <DeletedBadge />}
+                      <StatusBadge status={s.status} />
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-600">{s.engineer_name}</div>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-xs text-gray-400">{new Date(s.request_date).toLocaleDateString()}</span>
+                    <span className="text-sm font-medium">{formatMVR(s.total_amount)} {currency}</span>
+                  </div>
+                  {s.payment_status && <div className="mt-2"><PaymentBadge status={s.payment_status} /></div>}
+                </Link>
+              ))}
+            </div>
+
+            {/* Tablet+: table */}
+            <div className="hidden sm:block bg-white rounded-lg shadow-sm overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="text-left text-gray-500 border-b">
+                    <th className="p-3">Ref No.</th>
+                    <th className="p-3">Engineer</th>
+                    <th className="p-3">Date</th>
+                    <th className="p-3">Company</th>
+                    <th className="p-3 text-right">Total ({currency})</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3">Payment</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shipping.length === 0 && (
+                    <tr><td colSpan={7} className="p-4 text-center text-gray-400">No shipping expense requests yet.</td></tr>
+                  )}
+                  {shipping.map((s) => (
+                    <tr key={s.id} className={`border-b last:border-0 hover:bg-gray-50 ${s.deleted_at ? "opacity-60" : ""}`}>
+                      <td className="p-3">
+                        <Link href={`/shipping/${s.id}`} className="text-brand-navy hover:underline">{s.ref_number}</Link>
+                      </td>
+                      <td className="p-3">{s.engineer_name}</td>
+                      <td className="p-3">{new Date(s.request_date).toLocaleDateString()}</td>
+                      <td className="p-3">{s.company}</td>
+                      <td className="p-3 text-right">{formatMVR(s.total_amount)}</td>
+                      <td className="p-3">
+                        <div className="flex gap-1 flex-wrap">
+                          {s.deleted_at && <DeletedBadge />}
+                          <StatusBadge status={s.status} />
+                        </div>
+                      </td>
+                      <td className="p-3"><PaymentBadge status={s.payment_status} /></td>
                     </tr>
                   ))}
                 </tbody>

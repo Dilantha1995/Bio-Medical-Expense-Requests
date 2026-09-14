@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CURRENCIES } from "@/lib/currencies";
 
 const TIMEZONES = [
   { value: "Indian/Maldives", label: "Maldives (UTC+05:00)" },
@@ -11,15 +12,6 @@ const TIMEZONES = [
   { value: "Asia/Dubai", label: "UAE (UTC+04:00)" },
   { value: "Asia/Singapore", label: "Singapore (UTC+08:00)" },
   { value: "UTC", label: "UTC" },
-];
-
-const CURRENCIES = [
-  { value: "MVR", label: "MVR — Maldivian Rufiyaa" },
-  { value: "USD", label: "USD — US Dollar" },
-  { value: "EUR", label: "EUR — Euro" },
-  { value: "LKR", label: "LKR — Sri Lankan Rupee" },
-  { value: "INR", label: "INR — Indian Rupee" },
-  { value: "AED", label: "AED — UAE Dirham" },
 ];
 
 function OptionListManager({ title, description, endpoint, placeholder }) {
@@ -158,6 +150,50 @@ export default function ConfigureClient() {
         description="Job titles available when adding or editing a user."
         endpoint="/api/config/designations"
         placeholder="e.g. Finance Manager"
+      />
+
+      <h2 className="text-lg font-semibold text-brand-navy pt-2">Travel Advance Types</h2>
+      <OptionListManager
+        title="Type of Travel Advance"
+        description="Engineers pick one of these when submitting a new Travel Advance Request."
+        endpoint="/api/config/options/travel_advance_type"
+        placeholder="e.g. Preventive Maintenance"
+      />
+
+      <h2 className="text-lg font-semibold text-brand-navy pt-2">Machines</h2>
+      <div className="grid sm:grid-cols-2 gap-6">
+        <OptionListManager
+          title="Machine Name / Brand"
+          description="Used in the Machines form and in PM/Installation/Training log reports."
+          endpoint="/api/config/options/machine_name"
+          placeholder="e.g. Vitros 350"
+        />
+        <OptionListManager
+          title="Model"
+          description="Specific model/variant, used in the Machines form."
+          endpoint="/api/config/options/machine_model"
+          placeholder="e.g. 350 R"
+        />
+        <OptionListManager
+          title="Category"
+          description="Type of analyzer, used in the Machines form and reports."
+          endpoint="/api/config/options/machine_category"
+          placeholder="e.g. Chemistry Analyzer"
+        />
+        <OptionListManager
+          title="Facility / Customer"
+          description="Hospitals/clinics/customers, used in the Machines form."
+          endpoint="/api/config/options/machine_facility"
+          placeholder="e.g. Naifaru Regional Hospital"
+        />
+      </div>
+
+      <h2 className="text-lg font-semibold text-brand-navy pt-2">Shipping Expenses</h2>
+      <OptionListManager
+        title="Type of Expense"
+        description="Categories used when itemizing a Shipping Expense Request."
+        endpoint="/api/config/options/shipping_expense_type"
+        placeholder="e.g. Crane Charge"
       />
     </div>
   );

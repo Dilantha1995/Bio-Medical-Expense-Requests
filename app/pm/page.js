@@ -12,7 +12,7 @@ export default async function PmDashboardPage() {
   return (
     <div>
       <NavBar fullName={session.fullName} role={session.role} canAccessPmDashboard={session.canAccessPmDashboard} />
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6">
         <PmDashboardClient session={session} />
       </main>
     </div>

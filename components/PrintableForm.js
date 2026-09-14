@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { lineItemTotal, formatMVR } from "@/lib/calc";
 import { billItemTotal, summarizeBillItems } from "@/lib/billCalc";
+import { shippingItemTotal, summarizeShippingItemsByCurrency } from "@/lib/shippingCalc";
 import { formatDateInTz, formatDateTimeInTz } from "@/lib/formatDate";
 
 const COMPANY_INFO = {
@@ -25,9 +26,11 @@ function SignatureBlock({ label, name, signature, timestamp, timezone }) {
 
 export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
   const isBill = doc.docTitle === "Summary of Bills";
+  const isShipping = doc.docTitle === "Shipping Expense Request";
   const items = doc.line_items || [];
   const company = COMPANY_INFO[doc.company] || null;
   const summary = isBill ? summarizeBillItems(items) : null;
+  const shippingByCurrency = isShipping ? summarizeShippingItemsByCurrency(items) : null;
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm print:shadow-none print:rounded-none relative" id="printable-form">
@@ -63,9 +66,11 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
         )}
       </div>
 
-      <div className="flex justify-between text-sm mb-4">
+      <div className="flex justify-between text-sm mb-4 flex-wrap gap-2">
         <p><span className="font-medium">Ref No:</span> {doc.ref_number}</p>
+        {doc.request_type && <p><span className="font-medium">Type:</span> {doc.request_type}</p>}
         <p><span className="font-medium">Date:</span> {doc.dateValue ? formatDateInTz(doc.dateValue, timezone) : "-"}</p>
+        {doc.expected_end_date && <p><span className="font-medium">Expected Completion:</span> {formatDateInTz(doc.expected_end_date, timezone)}</p>}
       </div>
 
       {isBill ? (
@@ -101,6 +106,45 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
             </tfoot>
           </table>
         </div>
+      ) : isShipping ? (
+        <div className="overflow-x-auto mb-4">
+          <table className="form-table w-full text-xs border-collapse">
+            <thead className="bg-gray-50">
+              <tr>
+                <th>Srn</th>
+                <th>Date</th>
+                <th>Description</th>
+                <th>DN No.</th>
+                <th>Ref No.</th>
+                <th>Location</th>
+                <th>Type of Expense</th>
+                <th>Amount</th>
+                <th>Currency</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((it, i) => (
+                <tr key={i}>
+                  <td>{i + 1}</td>
+                  <td>{it.date}</td>
+                  <td>{it.description}</td>
+                  <td>{it.dnNumber}</td>
+                  <td>{it.refNo}</td>
+                  <td>{it.location}</td>
+                  <td>{it.expenseType}</td>
+                  <td className="text-right">{formatMVR(shippingItemTotal(it))}</td>
+                  <td>{it.currency || "MVR"}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="font-semibold bg-gray-50">
+                <td colSpan={7} className="text-right">TOTAL</td>
+                <td colSpan={2} className="text-left">{formatMVR(doc.total_amount)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       ) : (
         <div className="overflow-x-auto mb-4">
           <table className="form-table w-full text-xs border-collapse">
@@ -124,9 +168,9 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
             <tbody>
               {items.map((it, i) => (
                 <tr key={i}>
-                  <td>{i + 1}</td>
+                  <td>{i + 1}{it.isExtension && <span className="text-amber-600"> (Ext.)</span>}</td>
                   <td>{it.fromLocation}<br />{it.fromDate}</td>
-                  <td>{it.toLocation}<br />{it.toDate}</td>
+                  <td>{it.toLocation}<br />{it.toDate}{it.machineLabel && <><br /><span className="text-gray-500">{it.machineLabel}</span></>}</td>
                   <td>{it.mode}</td>
                   <td className="text-right">{it.days}</td>
                   <td className="text-right">{formatMVR(it.food)}</td>
@@ -173,6 +217,20 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
         </div>
       )}
 
+      {isShipping && shippingByCurrency && items.length > 0 && (
+        <div className="grid sm:grid-cols-2 gap-4 mb-4 text-xs">
+          <div className="border rounded-md p-2">
+            <p className="font-medium mb-1">By Currency</p>
+            {Object.entries(shippingByCurrency).map(([k, v]) => (
+              <div key={k} className="flex justify-between">
+                <span>{k} ({v.count})</span>
+                <span>{formatMVR(v.total)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {(doc.advance_received !== undefined) && (
         <div className="flex justify-end gap-8 text-sm mb-4">
           <p><span className="font-medium">Advance Received:</span> {currency} {formatMVR(doc.advance_received)}</p>
@@ -187,7 +245,7 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
       )}
 
       <div className="grid sm:grid-cols-2 gap-4 text-sm mb-4">
-        <p><span className="font-medium">Purpose of Travel:</span> {doc.purpose_of_travel || "-"}</p>
+        {!isShipping && <p><span className="font-medium">Purpose of Travel:</span> {doc.purpose_of_travel || "-"}</p>}
         <p><span className="font-medium">Notes:</span> {doc.notes || "-"}</p>
       </div>
 

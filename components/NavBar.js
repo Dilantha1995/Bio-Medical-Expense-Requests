@@ -6,6 +6,44 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import NotificationBell from "./NotificationBell";
 
+function NavLink({ href, label, pathname }) {
+  return (
+    <Link href={href} className={`hover:text-brand-navy ${pathname === href ? "text-brand-navy font-medium" : ""}`}>
+      {label}
+    </Link>
+  );
+}
+
+function NavDropdown({ label, items, pathname }) {
+  const [open, setOpen] = useState(false);
+  const active = items.some((i) => i.href === pathname);
+  return (
+    <div className="relative" onMouseLeave={() => setOpen(false)}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        onMouseEnter={() => setOpen(true)}
+        className={`flex items-center gap-1 hover:text-brand-navy ${active ? "text-brand-navy font-medium" : ""}`}
+      >
+        {label} <span className="text-[10px]">▾</span>
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1 bg-white border rounded-md shadow-lg py-1 min-w-[190px] z-30">
+          {items.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              onClick={() => setOpen(false)}
+              className={`block px-3 py-2 text-sm hover:bg-gray-50 ${pathname === l.href ? "text-brand-navy font-medium" : "text-gray-700"}`}
+            >
+              {l.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function NavBar({ fullName, role, canAccessPmDashboard }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -26,32 +64,45 @@ export default function NavBar({ fullName, role, canAccessPmDashboard }) {
     router.refresh();
   }
 
-  const links = [
-    { href: "/dashboard", label: "Dashboard" },
+  const newLinks = [
     { href: "/requests/new", label: "New Advance Request" },
     { href: "/bills/new", label: "New Bill Summary" },
-    { href: "/machines", label: "Machines" },
-    ...(role === "admin" || canAccessPmDashboard ? [{ href: "/pm", label: "PM Schedule" }] : []),
-    ...(role === "admin" || role === "approver" ? [{ href: "/reports", label: "Reports" }] : []),
+    { href: "/shipping/new", label: "New Shipping Expense" },
+  ];
+  const adminLinks = [
     ...(role === "admin" ? [{ href: "/admin/users", label: "Users" }] : []),
     ...(role === "admin" ? [{ href: "/configure", label: "Configure" }] : []),
+  ];
+  const showPm = role === "admin" || canAccessPmDashboard;
+  const showReports = role === "admin" || role === "approver";
+
+  // Mobile keeps a single flat, scrollable list rather than dropdowns.
+  const mobileLinks = [
+    { href: "/dashboard", label: "Dashboard" },
+    ...newLinks,
+    { href: "/machines", label: "Machines" },
+    ...(showPm ? [{ href: "/pm", label: "PM Schedule" }] : []),
+    ...(showReports ? [{ href: "/reports", label: "Reports" }] : []),
+    ...adminLinks,
     { href: "/profile", label: "My Profile" },
   ];
 
   return (
     <header className="bg-white border-b sticky top-0 z-20">
-      <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <Image src="/psms-logo.jpg" alt="ProSynergy Medical Systems" width={100} height={36} style={{ objectFit: "contain", height: 28, width: "auto" }} />
           <Image src="/propharma-logo.jpg" alt="Pro Pharma Maldives" width={80} height={36} style={{ objectFit: "contain", height: 28, width: "auto" }} className="hidden xs:block" />
         </div>
 
-        <nav className="hidden md:flex items-center gap-4 text-sm text-gray-600">
-          {links.map((l) => (
-            <Link key={l.href} href={l.href} className={`hover:text-brand-navy ${pathname === l.href ? "text-brand-navy font-medium" : ""}`}>
-              {l.label}
-            </Link>
-          ))}
+        <nav className="hidden md:flex items-center gap-5 text-sm text-gray-600">
+          <NavLink href="/dashboard" label="Dashboard" pathname={pathname} />
+          <NavDropdown label="New" items={newLinks} pathname={pathname} />
+          <NavLink href="/machines" label="Machines" pathname={pathname} />
+          {showPm && <NavLink href="/pm" label="PM Schedule" pathname={pathname} />}
+          {showReports && <NavLink href="/reports" label="Reports" pathname={pathname} />}
+          {adminLinks.length > 0 && <NavDropdown label="Admin" items={adminLinks} pathname={pathname} />}
+          <NavLink href="/profile" label="My Profile" pathname={pathname} />
         </nav>
 
         <div className="flex items-center gap-2">
@@ -77,7 +128,7 @@ export default function NavBar({ fullName, role, canAccessPmDashboard }) {
       {menuOpen && (
         <div className="md:hidden border-t bg-white">
           <nav className="flex flex-col py-2">
-            {links.map((l) => (
+            {mobileLinks.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
