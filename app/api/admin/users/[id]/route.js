@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { requireRole, hashPassword } from "@/lib/auth";
+import { requireCanManageUsers, hashPassword } from "@/lib/auth";
 
 export async function PATCH(req, { params }) {
   try {
-    await requireRole("admin");
+    await requireCanManageUsers();
     const body = await req.json();
     const { active, role, canFinalApprove, canManageMachines, canAccessPmDashboard, canProcessPayments, newPassword, designation, fullName } = body;
 
@@ -13,7 +13,13 @@ export async function PATCH(req, { params }) {
     let i = 1;
 
     if (typeof active === "boolean") { sets.push(`active=$${i++}`); values.push(active); }
-    if (role) { sets.push(`role=$${i++}`); values.push(role); }
+    if (role) {
+      const roleCheck = await query(`SELECT 1 FROM roles WHERE key=$1 AND active=true`, [role]);
+      if (roleCheck.rows.length === 0) {
+        return NextResponse.json({ error: "Invalid role." }, { status: 400 });
+      }
+      sets.push(`role=$${i++}`); values.push(role);
+    }
     if (typeof canFinalApprove === "boolean") { sets.push(`can_final_approve=$${i++}`); values.push(canFinalApprove); }
     if (typeof canManageMachines === "boolean") { sets.push(`can_manage_machines=$${i++}`); values.push(canManageMachines); }
     if (typeof canAccessPmDashboard === "boolean") { sets.push(`can_access_pm_dashboard=$${i++}`); values.push(canAccessPmDashboard); }

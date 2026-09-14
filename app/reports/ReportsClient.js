@@ -14,7 +14,7 @@ const DOC_TYPES = [
 ];
 
 export default function ReportsClient({ session }) {
-  const canFilterAll = session.role === "admin" || session.role === "approver";
+  const canFilterAll = session.canViewAllRecords;
 
   const [docType, setDocType] = useState("requests");
   const [from, setFrom] = useState("");

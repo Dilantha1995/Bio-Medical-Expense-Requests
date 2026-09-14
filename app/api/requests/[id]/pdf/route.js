@@ -17,7 +17,7 @@ export async function GET(req, { params }) {
     const session = await requireSession();
     const record = await getAdvanceRequestById(params.id);
     if (!record) return new Response("Not found", { status: 404 });
-    if (session.role === "engineer" && record.engineer_id !== session.id) {
+    if (!session.canViewAllRecords && record.engineer_id !== session.id) {
       return new Response("Forbidden", { status: 403 });
     }
 

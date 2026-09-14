@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { requireRole } from "@/lib/auth";
+import { requireCanManageConfig } from "@/lib/auth";
 
 export async function PATCH(req, { params }) {
   try {
-    await requireRole("admin");
+    await requireCanManageConfig();
     const body = await req.json();
     const { fieldKey, operator, compareValue, color, textColor, label, applyTo, priority, active } = body;
 
@@ -35,7 +35,7 @@ export async function PATCH(req, { params }) {
 
 export async function DELETE(req, { params }) {
   try {
-    await requireRole("admin");
+    await requireCanManageConfig();
     await query(`DELETE FROM pm_conditional_rules WHERE id=$1`, [params.id]);
     return NextResponse.json({ ok: true });
   } catch (e) {

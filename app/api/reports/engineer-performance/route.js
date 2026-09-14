@@ -9,7 +9,7 @@ export async function GET(req) {
     const from = searchParams.get("from");
     const to = searchParams.get("to");
     let engineerId = searchParams.get("engineerId");
-    if (session.role === "engineer") engineerId = String(session.id);
+    if (!session.canViewAllRecords) engineerId = String(session.id);
 
     const advParams = [];
     const advConditions = ["ar.deleted_at IS NULL"];

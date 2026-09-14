@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
 const PROTECTED_PREFIXES = ["/dashboard", "/requests", "/bills", "/shipping", "/admin", "/machines", "/pm", "/profile", "/configure", "/reports", "/change-password"];
-const ADMIN_ONLY_PREFIXES = ["/admin", "/pm/fields", "/pm/rules", "/configure"];
+// /admin (Users, Roles) needs canManageUsers; the Configure page and PM
+// column/rule editors need canManageConfig — both come from the user's
+// role permission bundle (see lib/auth.js's createSessionToken).
+const USER_MGMT_PREFIXES = ["/admin"];
+const CONFIG_PREFIXES = ["/pm/fields", "/pm/rules", "/configure"];
 
 export async function middleware(req) {
   const { pathname } = req.nextUrl;
@@ -22,8 +26,12 @@ export async function middleware(req) {
       return NextResponse.redirect(new URL("/change-password", req.url));
     }
 
-    const needsAdmin = ADMIN_ONLY_PREFIXES.some((p) => pathname.startsWith(p));
-    if (needsAdmin && payload.role !== "admin") {
+    const needsUserMgmt = USER_MGMT_PREFIXES.some((p) => pathname.startsWith(p));
+    if (needsUserMgmt && !payload.canManageUsers) {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+    const needsConfig = CONFIG_PREFIXES.some((p) => pathname.startsWith(p));
+    if (needsConfig && !payload.canManageConfig) {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
     return NextResponse.next();

@@ -65,7 +65,7 @@ function DeletedBadge() {
   return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Deleted</span>;
 }
 
-export default function DashboardClient({ role }) {
+export default function DashboardClient({ session }) {
   const [requests, setRequests] = useState([]);
   const [bills, setBills] = useState([]);
   const [shipping, setShipping] = useState([]);
@@ -93,7 +93,7 @@ export default function DashboardClient({ role }) {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-xl font-semibold text-brand-navy">
-          {role === "engineer" ? "My Travel Forms" : "All Travel Forms"}
+          {session.canViewAllRecords ? "All Travel Forms" : "My Travel Forms"}
         </h1>
         <div className="flex gap-2">
           <Link href="/requests/new" className="flex-1 sm:flex-none text-center text-sm bg-brand-navy text-white px-3 py-2 sm:py-1.5 rounded-md">
