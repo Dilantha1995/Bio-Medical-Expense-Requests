@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { formatMVR } from "@/lib/calc";
 
 const STATUS_STYLES = {
@@ -66,6 +67,7 @@ function DeletedBadge() {
 }
 
 export default function DashboardClient({ session }) {
+  const router = useRouter();
   const [requests, setRequests] = useState([]);
   const [bills, setBills] = useState([]);
   const [shipping, setShipping] = useState([]);
@@ -162,9 +164,10 @@ export default function DashboardClient({ session }) {
                     <tr><td colSpan={8} className="p-4 text-center text-gray-400">No advance requests yet.</td></tr>
                   )}
                   {requests.map((r) => (
-                    <tr key={r.id} className={`border-b last:border-0 hover:bg-gray-50 ${r.deleted_at ? "opacity-60" : ""}`}>
+                    <tr key={r.id} onClick={() => router.push(`/requests/${r.id}`)}
+                      className={`border-b last:border-0 hover:bg-gray-50 cursor-pointer ${r.deleted_at ? "opacity-60" : ""}`}>
                       <td className="p-3">
-                        <Link href={`/requests/${r.id}`} className="text-brand-navy hover:underline">{r.ref_number}</Link>
+                        <Link href={`/requests/${r.id}`} onClick={(e) => e.stopPropagation()} className="text-brand-navy hover:underline">{r.ref_number}</Link>
                       </td>
                       <td className="p-3">{r.engineer_name}</td>
                       <td className="p-3">{new Date(r.request_date).toLocaleDateString()}</td>
@@ -235,9 +238,10 @@ export default function DashboardClient({ session }) {
                     <tr><td colSpan={8} className="p-4 text-center text-gray-400">No bill summaries yet.</td></tr>
                   )}
                   {bills.map((b) => (
-                    <tr key={b.id} className={`border-b last:border-0 hover:bg-gray-50 ${b.deleted_at ? "opacity-60" : ""}`}>
+                    <tr key={b.id} onClick={() => router.push(`/bills/${b.id}`)}
+                      className={`border-b last:border-0 hover:bg-gray-50 cursor-pointer ${b.deleted_at ? "opacity-60" : ""}`}>
                       <td className="p-3">
-                        <Link href={`/bills/${b.id}`} className="text-brand-navy hover:underline">{b.ref_number}</Link>
+                        <Link href={`/bills/${b.id}`} onClick={(e) => e.stopPropagation()} className="text-brand-navy hover:underline">{b.ref_number}</Link>
                       </td>
                       <td className="p-3">{b.engineer_name}</td>
                       <td className="p-3">{new Date(b.summary_date).toLocaleDateString()}</td>
@@ -304,9 +308,10 @@ export default function DashboardClient({ session }) {
                     <tr><td colSpan={7} className="p-4 text-center text-gray-400">No shipping expense requests yet.</td></tr>
                   )}
                   {shipping.map((s) => (
-                    <tr key={s.id} className={`border-b last:border-0 hover:bg-gray-50 ${s.deleted_at ? "opacity-60" : ""}`}>
+                    <tr key={s.id} onClick={() => router.push(`/shipping/${s.id}`)}
+                      className={`border-b last:border-0 hover:bg-gray-50 cursor-pointer ${s.deleted_at ? "opacity-60" : ""}`}>
                       <td className="p-3">
-                        <Link href={`/shipping/${s.id}`} className="text-brand-navy hover:underline">{s.ref_number}</Link>
+                        <Link href={`/shipping/${s.id}`} onClick={(e) => e.stopPropagation()} className="text-brand-navy hover:underline">{s.ref_number}</Link>
                       </td>
                       <td className="p-3">{s.engineer_name}</td>
                       <td className="p-3">{new Date(s.request_date).toLocaleDateString()}</td>
