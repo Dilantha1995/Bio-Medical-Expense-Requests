@@ -22,13 +22,14 @@ export async function GET(req, { params }) {
     }
 
     const appSettings = await getAppSettings();
+    const signaturesOn = appSettings.signaturesEnabled !== "false";
     const doc = {
       ...record,
       docTitle: "Travel Advance Request",
       dateValue: record.request_date,
-      preparedBySignatureBase64: record.prepared_by_signature || null,
-      checkedBySignatureBase64: record.checked_by_signature || null,
-      approvedBySignatureBase64: record.approved_by_signature || null,
+      preparedBySignatureBase64: signaturesOn ? (record.prepared_by_signature || null) : null,
+      checkedBySignatureBase64: signaturesOn ? (record.checked_by_signature || null) : null,
+      approvedBySignatureBase64: signaturesOn ? (record.approved_by_signature || null) : null,
     };
     const { psms, ppm } = getLogoDataUris();
     const companyLogo = record.company === "PPM" ? ppm : psms;

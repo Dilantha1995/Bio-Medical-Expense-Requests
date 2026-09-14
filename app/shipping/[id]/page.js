@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { getShippingRequestById, getAppSettings } from "@/lib/data";
+import { getShippingRequestById, getAppSettings, withSignatureSetting } from "@/lib/data";
 import NavBar from "@/components/NavBar";
 import PrintableForm from "@/components/PrintableForm";
 import ActionsBar from "../../requests/[id]/ActionsBar";
@@ -14,7 +14,7 @@ export default async function ShippingDetailPage({ params }) {
   const appSettings = await getAppSettings();
 
   const doc = {
-    ...record,
+    ...withSignatureSetting(record, appSettings),
     docTitle: "Shipping Expense Request",
     dateValue: record.request_date,
   };

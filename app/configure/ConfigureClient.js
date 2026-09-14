@@ -96,7 +96,7 @@ function OptionListManager({ title, description, endpoint, placeholder }) {
 }
 
 export default function ConfigureClient() {
-  const [settings, setSettings] = useState({ timezone: "Indian/Maldives", currency: "MVR" });
+  const [settings, setSettings] = useState({ timezone: "Indian/Maldives", currency: "MVR", signaturesEnabled: "true" });
   const [savedMsg, setSavedMsg] = useState("");
 
   useEffect(() => {
@@ -134,6 +134,17 @@ export default function ConfigureClient() {
             {CURRENCIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
           <p className="text-xs text-gray-400 mt-2">Used on documents and reports.</p>
+        </div>
+        <div>
+          <h2 className="text-sm font-semibold text-gray-600 mb-3">Digital Signatures</h2>
+          <select value={settings.signaturesEnabled ?? "true"} onChange={(e) => saveSetting("signaturesEnabled", e.target.value)}
+            className="border rounded-md px-3 py-2 text-sm w-full">
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+          <p className="text-xs text-gray-400 mt-2">
+            When disabled, documents show Prepared/Checked/Approved By names and dates but not the scanned signature image.
+          </p>
         </div>
         {savedMsg && <span className="text-sm text-green-600 sm:col-span-2">{savedMsg}</span>}
       </div>

@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { getAdvanceRequestById, getAppSettings } from "@/lib/data";
+import { getAdvanceRequestById, getAppSettings, withSignatureSetting } from "@/lib/data";
 import NavBar from "@/components/NavBar";
 import PrintableForm from "@/components/PrintableForm";
 import ActionsBar from "./ActionsBar";
@@ -16,7 +16,7 @@ export default async function RequestDetailPage({ params }) {
   const appSettings = await getAppSettings();
 
   const doc = {
-    ...record,
+    ...withSignatureSetting(record, appSettings),
     docTitle: "Travel Advance Request",
     dateValue: record.request_date,
   };
