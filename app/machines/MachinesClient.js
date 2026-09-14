@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import LocationPicker from "@/components/LocationPicker";
+import SelectWithAdd from "@/components/SelectWithAdd";
 
 function emptyForm() {
   return { name: "", model: "", serialNumber: "", category: "", facilityName: "", locationLabel: "", installDate: "", notes: "" };
@@ -85,18 +86,18 @@ export default function MachinesClient({ session }) {
         <form onSubmit={handleCreate} className="bg-white p-4 rounded-lg shadow-sm grid sm:grid-cols-3 gap-3">
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Machine Name</label>
-            <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="e.g. Vitros 350" className="w-full border rounded-md px-3 py-2 text-sm" />
+            <SelectWithAdd listKey="machine_name" value={form.name} onChange={(v) => setForm({ ...form, name: v })}
+              placeholder="e.g. Vitros 350" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Model</label>
-            <input value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })}
-              className="w-full border rounded-md px-3 py-2 text-sm" />
+            <SelectWithAdd listKey="machine_model" value={form.model} onChange={(v) => setForm({ ...form, model: v })}
+              placeholder="Select or add a model" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
-            <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}
-              placeholder="e.g. Chemistry Analyzer" className="w-full border rounded-md px-3 py-2 text-sm" />
+            <SelectWithAdd listKey="machine_category" value={form.category} onChange={(v) => setForm({ ...form, category: v })}
+              placeholder="e.g. Chemistry Analyzer" />
           </div>
 
           <div className="sm:col-span-2">
@@ -120,8 +121,8 @@ export default function MachinesClient({ session }) {
 
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Facility / Customer</label>
-            <input value={form.facilityName} onChange={(e) => setForm({ ...form, facilityName: e.target.value })}
-              placeholder="e.g. Naifaru Regional Hospital" className="w-full border rounded-md px-3 py-2 text-sm" />
+            <SelectWithAdd listKey="machine_facility" value={form.facilityName} onChange={(v) => setForm({ ...form, facilityName: v })}
+              placeholder="e.g. Naifaru Regional Hospital" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Location</label>

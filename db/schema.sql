@@ -237,6 +237,84 @@ CREATE TABLE IF NOT EXISTS pm_schedule_entries (
 
 CREATE INDEX IF NOT EXISTS idx_pm_entries_machine ON pm_schedule_entries(machine_id);
 
+-- Type of travel advance (Preventive Maintenance / Installation / Training),
+-- an expected completion date that drives the day-before reminder, and the
+-- ability to request an extension that stays on the same document (needs
+-- re-approval, so it goes back to 'submitted' with a snapshot to roll back
+-- to if the extension itself is rejected).
+ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS request_type TEXT;
+ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS expected_end_date DATE;
+ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS task_completed_at TIMESTAMPTZ;
+ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS task_completed_by INTEGER REFERENCES users(id);
+ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS last_reminder_sent_on DATE;
+ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS is_extension_pending BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS extension_history JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS pre_extension_snapshot JSONB;
+
+-- Generic admin-configurable option lists, keyed by list_key, used for
+-- everything from the Travel Advance "type" dropdown to Machine
+-- Name/Model/Category/Facility pickers to Shipping Expense types. One
+-- table instead of one bespoke table per list.
+CREATE TABLE IF NOT EXISTS option_lists (
+  id SERIAL PRIMARY KEY,
+  list_key TEXT NOT NULL,
+  label TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(list_key, label)
+);
+CREATE INDEX IF NOT EXISTS idx_option_lists_key ON option_lists(list_key, sort_order);
+
+INSERT INTO option_lists (list_key, label, sort_order) VALUES
+  ('travel_advance_type','Preventive Maintenance',0),
+  ('travel_advance_type','Installation',1),
+  ('travel_advance_type','Training',2),
+  ('machine_category','Chemistry Analyzer',0),
+  ('machine_category','Hematology Analyzer',1),
+  ('machine_category','Immunoassay Analyzer',2),
+  ('machine_category','Coagulation Analyzer',3),
+  ('machine_category','Blood Gas Analyzer',4),
+  ('shipping_expense_type','Boat Charge',0),
+  ('shipping_expense_type','Taxi Fee',1),
+  ('shipping_expense_type','Delivery Charge',2),
+  ('shipping_expense_type','Crane Charge',3),
+  ('shipping_expense_type','Food Expenses',4),
+  ('shipping_expense_type','Other',5)
+ON CONFLICT (list_key, label) DO NOTHING;
+
+-- Shipping Expense Requests: same prepared/checked/approved workflow and
+-- per-company reference numbering (doc type 'SHP') as advance requests
+-- and bill summaries, with its own line item shape.
+CREATE TABLE IF NOT EXISTS shipping_expense_requests (
+  id SERIAL PRIMARY KEY,
+  ref_number TEXT UNIQUE NOT NULL,
+  engineer_id INTEGER NOT NULL REFERENCES users(id),
+  request_date DATE NOT NULL,
+  notes TEXT,
+  line_items JSONB NOT NULL DEFAULT '[]', -- [{date, description, dnNumber, refNo, location, expenseType, amount, currency}]
+  total_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+  company TEXT NOT NULL DEFAULT 'PSMS',
+  status TEXT NOT NULL DEFAULT 'submitted',
+  prepared_by INTEGER REFERENCES users(id),
+  prepared_at TIMESTAMPTZ,
+  checked_by INTEGER REFERENCES users(id),
+  checked_at TIMESTAMPTZ,
+  approved_by INTEGER REFERENCES users(id),
+  approved_at TIMESTAMPTZ,
+  rejection_reason TEXT,
+  payment_status TEXT,
+  payment_slip_data TEXT,
+  payment_processed_by INTEGER REFERENCES users(id),
+  payment_processed_at TIMESTAMPTZ,
+  payment_rejection_reason TEXT,
+  deleted_at TIMESTAMPTZ,
+  deleted_by INTEGER REFERENCES users(id),
+  deletion_reason TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_shipping_engineer ON shipping_expense_requests(engineer_id);
+
 -- Admin-defined conditional formatting rules for the PM schedule grid.
 -- Evaluated in priority order (lowest first); the first matching rule
 -- for a cell (or row, if apply_to='row') wins.

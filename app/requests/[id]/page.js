@@ -5,6 +5,7 @@ import NavBar from "@/components/NavBar";
 import PrintableForm from "@/components/PrintableForm";
 import ActionsBar from "./ActionsBar";
 import BillStatusBanner from "./BillStatusBanner";
+import ExtensionHistory from "./ExtensionHistory";
 
 export default async function RequestDetailPage({ params }) {
   const session = await getSession();
@@ -23,13 +24,27 @@ export default async function RequestDetailPage({ params }) {
   return (
     <div>
       <NavBar fullName={session.fullName} role={session.role} canAccessPmDashboard={session.canAccessPmDashboard} />
-      <main className="max-w-4xl mx-auto px-4 py-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 print:hidden">
-          <h1 className="text-lg sm:text-xl font-semibold text-brand-navy break-all">Advance Request {record.ref_number}</h1>
-          <ActionsBar id={record.id} kind="requests" status={record.status} session={session} returnedAt={record.returned_at} paymentStatus={record.payment_status} />
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 print:hidden">
+            <h1 className="text-lg sm:text-xl font-semibold text-brand-navy break-all">Advance Request {record.ref_number}</h1>
+            <ActionsBar id={record.id} kind="requests" status={record.status} session={session} returnedAt={record.returned_at} paymentStatus={record.payment_status}
+              engineerId={record.engineer_id} taskCompletedAt={record.task_completed_at} isExtensionPending={record.is_extension_pending} expectedEndDate={record.expected_end_date} />
+          </div>
+          {record.is_extension_pending && (
+            <div className="print:hidden border rounded-lg px-4 py-3 mb-4 bg-amber-50 border-amber-200 text-amber-800">
+              <span className="font-medium">Extension pending re-approval</span> — this request went back to Submitted so the extended deadline can be checked and approved.
+            </div>
+          )}
+          {record.task_completed_at && (
+            <div className="print:hidden border rounded-lg px-4 py-3 mb-4 bg-green-50 border-green-200 text-green-800">
+              <span className="font-medium">Task completed</span> — marked done on {new Date(record.task_completed_at).toLocaleDateString()}.
+            </div>
+          )}
+          <BillStatusBanner record={record} />
+          <ExtensionHistory history={record.extension_history} />
+          <PrintableForm doc={doc} timezone={appSettings.timezone} currency={appSettings.currency} />
         </div>
-        <BillStatusBanner record={record} />
-        <PrintableForm doc={doc} timezone={appSettings.timezone} currency={appSettings.currency} />
       </main>
     </div>
   );

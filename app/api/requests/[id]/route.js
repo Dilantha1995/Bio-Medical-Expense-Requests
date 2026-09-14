@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { getAdvanceRequestById as fetchRequest } from "@/lib/data";
-import { notify, notifyMany, getFinalApproverIds } from "@/lib/notifications";
+import { notify, notifyMany, getFinalApproverIds, getCheckerIds } from "@/lib/notifications";
+import { grandTotal } from "@/lib/calc";
 
 export async function GET(req, { params }) {
   try {
@@ -21,7 +22,7 @@ export async function GET(req, { params }) {
 export async function PATCH(req, { params }) {
   try {
     const session = await requireSession();
-    const { action, reason, returnedAt, paymentSlipData } = await req.json();
+    const { action, reason, returnedAt, paymentSlipData, newEndDate, extraLineItems } = await req.json();
     const link = `/requests/${params.id}`;
 
     if (action === "mark_returned") {
@@ -95,6 +96,82 @@ export async function PATCH(req, { params }) {
       return NextResponse.json({ request: updated });
     }
 
+    if (action === "mark_task_completed") {
+      const before = await fetchRequest(params.id);
+      if (!before) return NextResponse.json({ error: "Not found." }, { status: 404 });
+      const isOwner = before.engineer_id === session.id;
+      if (!isOwner && !["approver", "admin"].includes(session.role)) {
+        return NextResponse.json({ error: "You're not authorized to mark this task completed." }, { status: 403 });
+      }
+      if (before.status !== "approved") {
+        return NextResponse.json({ error: "Only an approved request's task can be marked completed." }, { status: 400 });
+      }
+      if (before.task_completed_at) {
+        return NextResponse.json({ error: "This task is already marked completed." }, { status: 400 });
+      }
+      await query(
+        `UPDATE advance_requests SET task_completed_at=now(), task_completed_by=$1 WHERE id=$2`,
+        [session.id, params.id]
+      );
+      const updated = await fetchRequest(params.id);
+      return NextResponse.json({ request: updated });
+    }
+
+    if (action === "request_extension") {
+      const before = await fetchRequest(params.id);
+      if (!before) return NextResponse.json({ error: "Not found." }, { status: 404 });
+      const isOwner = before.engineer_id === session.id;
+      if (!isOwner && session.role !== "admin") {
+        return NextResponse.json({ error: "Only the engineer who submitted this request (or an admin) can request an extension." }, { status: 403 });
+      }
+      if (before.status !== "approved") {
+        return NextResponse.json({ error: "Only an approved request can be extended." }, { status: 400 });
+      }
+      if (before.task_completed_at) {
+        return NextResponse.json({ error: "This task is already marked completed." }, { status: 400 });
+      }
+      if (before.is_extension_pending) {
+        return NextResponse.json({ error: "An extension is already pending review for this request." }, { status: 400 });
+      }
+      if (!newEndDate || !reason || !reason.trim()) {
+        return NextResponse.json({ error: "A new end date and a reason are required." }, { status: 400 });
+      }
+      if (before.expected_end_date && newEndDate <= before.expected_end_date.toISOString().slice(0, 10)) {
+        return NextResponse.json({ error: "The new end date must be after the current expected completion date." }, { status: 400 });
+      }
+
+      const snapshot = { line_items: before.line_items, total_amount: before.total_amount };
+      let lineItems = before.line_items;
+      if (Array.isArray(extraLineItems) && extraLineItems.length > 0) {
+        lineItems = [...lineItems, ...extraLineItems.map((it) => ({ ...it, isExtension: true }))];
+      }
+      const total = grandTotal(lineItems);
+      const historyEntry = {
+        requestedAt: new Date().toISOString(),
+        requestedBy: session.id,
+        requestedByName: session.fullName,
+        previousEndDate: before.expected_end_date,
+        newEndDate,
+        reason: reason.trim(),
+        status: "pending",
+      };
+      const history = [...(before.extension_history || []), historyEntry];
+
+      await query(
+        `UPDATE advance_requests
+         SET line_items=$1, total_amount=$2, extension_history=$3, pre_extension_snapshot=$4,
+             is_extension_pending=true, status='submitted'
+         WHERE id=$5`,
+        [JSON.stringify(lineItems), total, JSON.stringify(history), JSON.stringify(snapshot), params.id]
+      );
+
+      const checkerIds = await getCheckerIds();
+      await notifyMany(checkerIds, "Extension requested", `${before.ref_number} (${session.fullName}) requested an extension to ${newEndDate} and needs re-checking.`, link);
+
+      const updated = await fetchRequest(params.id);
+      return NextResponse.json({ request: updated });
+    }
+
     if (!["approver", "admin"].includes(session.role)) {
       return NextResponse.json({ error: "Only approvers can perform this action." }, { status: 403 });
     }
@@ -120,12 +197,52 @@ export async function PATCH(req, { params }) {
       if (record.status !== "checked") {
         return NextResponse.json({ error: "This request must be checked before it can be approved." }, { status: 400 });
       }
-      await query(
-        `UPDATE advance_requests SET status='approved', approved_by=$1, approved_at=now() WHERE id=$2`,
-        [session.id, params.id]
-      );
+      if (record.is_extension_pending) {
+        const history = [...(record.extension_history || [])];
+        const last = history[history.length - 1];
+        if (last && last.status === "pending") {
+          last.status = "approved";
+          last.approvedBy = session.id;
+          last.approvedByName = session.fullName;
+          last.approvedAt = new Date().toISOString();
+        }
+        await query(
+          `UPDATE advance_requests
+           SET status='approved', approved_by=$1, approved_at=now(), expected_end_date=$2,
+               is_extension_pending=false, pre_extension_snapshot=NULL, last_reminder_sent_on=NULL, extension_history=$3
+           WHERE id=$4`,
+          [session.id, last ? last.newEndDate : record.expected_end_date, JSON.stringify(history), params.id]
+        );
+      } else {
+        await query(
+          `UPDATE advance_requests SET status='approved', approved_by=$1, approved_at=now() WHERE id=$2`,
+          [session.id, params.id]
+        );
+      }
       await notify(record.engineer_id, "Advance request approved", `${record.ref_number} has been approved.`, link);
     } else if (action === "reject") {
+      if (record.is_extension_pending) {
+        const history = [...(record.extension_history || [])];
+        const last = history[history.length - 1];
+        if (last && last.status === "pending") {
+          last.status = "rejected";
+          last.rejectionReason = reason || "No reason given.";
+          last.rejectedBy = session.id;
+          last.rejectedByName = session.fullName;
+          last.rejectedAt = new Date().toISOString();
+        }
+        const snapshot = record.pre_extension_snapshot || { line_items: record.line_items, total_amount: record.total_amount };
+        await query(
+          `UPDATE advance_requests
+           SET status='approved', line_items=$1, total_amount=$2, is_extension_pending=false,
+               pre_extension_snapshot=NULL, extension_history=$3
+           WHERE id=$4`,
+          [JSON.stringify(snapshot.line_items), snapshot.total_amount, JSON.stringify(history), params.id]
+        );
+        await notify(record.engineer_id, "Extension declined", `Your extension request for ${record.ref_number} was declined. Reason: ${reason || "No reason given."} The original approval and deadline remain in effect.`, link);
+        const updated = await fetchRequest(params.id);
+        return NextResponse.json({ request: updated });
+      }
       await query(
         `UPDATE advance_requests SET status='rejected', rejection_reason=$1 WHERE id=$2`,
         [reason || "No reason given.", params.id]

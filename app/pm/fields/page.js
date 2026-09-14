@@ -9,7 +9,7 @@ export default async function PmFieldsPage() {
   return (
     <div>
       <NavBar fullName={session.fullName} role={session.role} canAccessPmDashboard={session.canAccessPmDashboard} />
-      <main className="max-w-4xl mx-auto px-4 py-6">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6">
         <PmFieldsClient />
       </main>
     </div>

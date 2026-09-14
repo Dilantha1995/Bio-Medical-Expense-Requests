@@ -2,6 +2,7 @@
 
 import { emptyLineItem, lineItemTotal, grandTotal, formatMVR } from "@/lib/calc";
 import LocationPicker from "./LocationPicker";
+import MachinePicker from "./MachinePicker";
 
 const NUMERIC_COLS = [
   { key: "days", label: "No of days" },
@@ -18,6 +19,12 @@ export default function LineItemsTable({ items, onChange }) {
   function updateItem(index, key, value) {
     const next = items.slice();
     next[index] = { ...next[index], [key]: value };
+    onChange(next);
+  }
+
+  function updateMachine(index, patch) {
+    const next = items.slice();
+    next[index] = { ...next[index], ...patch };
     onChange(next);
   }
 
@@ -78,6 +85,10 @@ export default function LineItemsTable({ items, onChange }) {
                 <input type="number" inputMode="decimal" className="w-full border rounded px-2 py-2 text-sm" value={item.days}
                   onChange={(e) => updateItem(i, "days", e.target.value)} />
               </div>
+              <div className="col-span-2">
+                <label className="block text-[11px] text-gray-500 mb-0.5">Machine (optional)</label>
+                <MachinePicker machineId={item.machineId} machineLabel={item.machineLabel} onChange={(patch) => updateMachine(i, patch)} />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2 border-t pt-2">
@@ -114,6 +125,7 @@ export default function LineItemsTable({ items, onChange }) {
               <th className="p-2 text-left border-b">From (island / date)</th>
               <th className="p-2 text-left border-b">To (island / date)</th>
               <th className="p-2 text-left border-b">Mode</th>
+              <th className="p-2 text-left border-b">Machine</th>
               {NUMERIC_COLS.map((c) => (
                 <th key={c.key} className="p-2 text-right border-b whitespace-nowrap">{c.label}</th>
               ))}
@@ -148,6 +160,9 @@ export default function LineItemsTable({ items, onChange }) {
                     <option value="LAND">LAND</option>
                   </select>
                 </td>
+                <td className="p-1 align-top w-40">
+                  <MachinePicker machineId={item.machineId} machineLabel={item.machineLabel} onChange={(patch) => updateMachine(i, patch)} />
+                </td>
                 {NUMERIC_COLS.map((c) => (
                   <td key={c.key} className="p-1 align-top">
                     <input type="number" step="0.01" className="w-20 border rounded px-1 py-1 text-right"
@@ -168,7 +183,7 @@ export default function LineItemsTable({ items, onChange }) {
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={4 + NUMERIC_COLS.length} className="p-2 text-right font-semibold border-t">TOTAL</td>
+              <td colSpan={5 + NUMERIC_COLS.length} className="p-2 text-right font-semibold border-t">TOTAL</td>
               <td className="p-2 text-right font-semibold border-t whitespace-nowrap">{formatMVR(grandTotal(items))}</td>
               <td className="border-t"></td>
             </tr>
