@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
-const PROTECTED_PREFIXES = ["/dashboard", "/requests", "/bills", "/shipping", "/admin", "/machines", "/pm", "/profile", "/configure", "/reports", "/change-password"];
+const PROTECTED_PREFIXES = ["/dashboard", "/requests", "/bills", "/shipping", "/admin", "/machines", "/location", "/pm", "/profile", "/configure", "/reports", "/change-password"];
 // Each area checks its own claim from the user's role permission bundle
 // (see lib/auth.js's createSessionToken) rather than one blanket "admin"
 // check — checked most-specific-prefix-first so /admin/users and
@@ -9,6 +9,7 @@ const PROTECTED_PREFIXES = ["/dashboard", "/requests", "/bills", "/shipping", "/
 const PREFIX_CHECKS = [
   { prefix: "/admin/users", claim: "canManageUsers" },
   { prefix: "/admin/roles", claim: "canManageRoles" },
+  { prefix: "/machines/import", claim: "canManageMachines" },
   { prefix: "/pm/fields", claim: "canManagePmColumns" },
   { prefix: "/pm/rules", claim: "canManagePmRules" },
   { prefix: "/configure", claim: "canManageConfig" },
@@ -45,5 +46,5 @@ export async function middleware(req) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/requests/:path*", "/bills/:path*", "/shipping/:path*", "/admin/:path*", "/machines/:path*", "/pm/:path*", "/profile/:path*", "/configure/:path*", "/reports/:path*", "/change-password/:path*"],
+  matcher: ["/dashboard/:path*", "/requests/:path*", "/bills/:path*", "/shipping/:path*", "/admin/:path*", "/machines/:path*", "/location/:path*", "/pm/:path*", "/profile/:path*", "/configure/:path*", "/reports/:path*", "/change-password/:path*"],
 };

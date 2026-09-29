@@ -4,9 +4,144 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import LocationPicker from "@/components/LocationPicker";
 import SelectWithAdd from "@/components/SelectWithAdd";
+import { resizeImageFile } from "@/lib/imageResize";
 
 function emptyForm() {
-  return { name: "", model: "", serialNumber: "", category: "", facilityName: "", locationLabel: "", installDate: "", notes: "" };
+  return { name: "", model: "", serialNumber: "", category: "", facilityName: "", locationLabel: "", installDate: "", notes: "", company: "PSMS", pictureData: "" };
+}
+
+function CompanyMiniSelect({ value, onChange }) {
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} className="w-full border rounded-md px-3 py-2 text-sm">
+      <option value="PSMS">PSMS</option>
+      <option value="PPM">PPM</option>
+    </select>
+  );
+}
+
+function PictureField({ value, onChange }) {
+  const [error, setError] = useState("");
+  async function handleFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError("");
+    try {
+      const dataUrl = await resizeImageFile(file, 400, 0.85);
+      onChange(dataUrl);
+    } catch {
+      setError("Could not read that image.");
+    }
+  }
+  return (
+    <div>
+      <div className="flex items-center gap-2">
+        {value ? (
+          <img src={value} alt="Machine" className="h-12 w-12 object-cover rounded border" />
+        ) : (
+          <div className="h-12 w-12 rounded border bg-gray-50 flex items-center justify-center text-[10px] text-gray-400">No photo</div>
+        )}
+        <input type="file" accept="image/*" onChange={handleFile} className="text-xs flex-1" />
+        {value && (
+          <button type="button" onClick={() => onChange("")} className="text-xs text-red-600 whitespace-nowrap">Remove</button>
+        )}
+      </div>
+      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+    </div>
+  );
+}
+
+function EditMachineModal({ machine, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    name: machine.name || "",
+    model: machine.model || "",
+    category: machine.category || "",
+    facilityName: machine.facility_name || "",
+    locationLabel: machine.location_label || "",
+    installDate: machine.install_date ? machine.install_date.slice(0, 10) : "",
+    notes: machine.notes || "",
+    company: machine.company || "PSMS",
+    pictureData: machine.picture_data || "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSave(e) {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+    const res = await fetch(`/api/machines/${machine.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    const data = await res.json();
+    setSaving(false);
+    if (!res.ok) { setError(data.error || "Failed to save."); return; }
+    onSaved(data.machine);
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-2 sm:p-4" onClick={onClose}>
+      <form onSubmit={handleSave} className="bg-white rounded-lg shadow-xl max-w-xl w-full max-h-[90vh] overflow-auto p-4 sm:p-6 space-y-3" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-brand-navy">Edit Machine</h2>
+          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl px-2 -mr-2">✕</button>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Picture</label>
+          <PictureField value={form.pictureData} onChange={(v) => setForm({ ...form, pictureData: v })} />
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Machine Name</label>
+            <SelectWithAdd listKey="machine_name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Company</label>
+            <CompanyMiniSelect value={form.company} onChange={(v) => setForm({ ...form, company: v })} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Model</label>
+            <SelectWithAdd listKey="machine_model" value={form.model} onChange={(v) => setForm({ ...form, model: v })} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
+            <SelectWithAdd listKey="machine_category" value={form.category} onChange={(v) => setForm({ ...form, category: v })} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Facility / Customer</label>
+            <SelectWithAdd listKey="machine_facility" value={form.facilityName} onChange={(v) => setForm({ ...form, facilityName: v })} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Location</label>
+            <LocationPicker value={form.locationLabel} onChange={(v) => setForm({ ...form, locationLabel: v })} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Install Date</label>
+            <input type="date" value={form.installDate} onChange={(e) => setForm({ ...form, installDate: e.target.value })}
+              className="w-full border rounded-md px-3 py-2 text-sm" />
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+          <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2}
+            className="w-full border rounded-md px-3 py-2 text-sm" />
+        </div>
+
+        <p className="text-xs text-gray-400">Map location (for the Location tab) is set from the Location page, not here.</p>
+
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="text-sm border px-4 py-2 rounded-md">Cancel</button>
+          <button type="submit" disabled={saving} className="text-sm bg-brand-navy text-white px-4 py-2 rounded-md disabled:opacity-50">
+            {saving ? "Saving..." : "Save"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
 }
 
 export default function MachinesClient({ session }) {
@@ -20,6 +155,7 @@ export default function MachinesClient({ session }) {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [editing, setEditing] = useState(null);
 
   async function load(query) {
     setLoading(true);
@@ -66,6 +202,11 @@ export default function MachinesClient({ session }) {
     load(q);
   }
 
+  function handleSaved(updated) {
+    setMachines((list) => list.map((m) => (m.id === updated.id ? updated : m)));
+    setEditing(null);
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -74,6 +215,11 @@ export default function MachinesClient({ session }) {
           <Link href="/machines/stickers" className="text-sm border border-brand-navy text-brand-navy px-3 py-1.5 rounded-md">
             Print PM Stickers
           </Link>
+          {canManage && (
+            <Link href="/machines/import" className="text-sm border border-brand-navy text-brand-navy px-3 py-1.5 rounded-md">
+              Import from Excel
+            </Link>
+          )}
           {canManage && (
             <button onClick={() => setShowForm((s) => !s)} className="text-sm bg-brand-navy text-white px-3 py-1.5 rounded-md">
               {showForm ? "Cancel" : "+ Add Machine"}
@@ -84,6 +230,10 @@ export default function MachinesClient({ session }) {
 
       {showForm && canManage && (
         <form onSubmit={handleCreate} className="bg-white p-4 rounded-lg shadow-sm grid sm:grid-cols-3 gap-3">
+          <div className="sm:col-span-3">
+            <label className="block text-xs font-medium text-gray-600 mb-1">Picture</label>
+            <PictureField value={form.pictureData} onChange={(v) => setForm({ ...form, pictureData: v })} />
+          </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Machine Name</label>
             <SelectWithAdd listKey="machine_name" value={form.name} onChange={(v) => setForm({ ...form, name: v })}
@@ -119,6 +269,10 @@ export default function MachinesClient({ session }) {
             </select>
           </div>
 
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Company</label>
+            <CompanyMiniSelect value={form.company} onChange={(v) => setForm({ ...form, company: v })} />
+          </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Facility / Customer</label>
             <SelectWithAdd listKey="machine_facility" value={form.facilityName} onChange={(v) => setForm({ ...form, facilityName: v })}
@@ -161,13 +315,23 @@ export default function MachinesClient({ session }) {
           <p className="bg-white rounded-lg shadow-sm p-4 text-center text-gray-400 text-sm">No machines yet.</p>
         )}
         {machines.map((m) => (
-          <div key={m.id} className="bg-white rounded-lg shadow-sm p-3">
-            <div className="font-medium text-sm">{m.name}{m.model ? ` (${m.model})` : ""}</div>
-            <div className="font-mono text-xs text-gray-500 mt-0.5">{m.serial_number}</div>
-            <div className="text-sm text-gray-600 mt-1">{m.facility_name}{m.facility_name && m.location_label ? " · " : ""}{m.location_label}</div>
-            <div className="flex items-center justify-between mt-1 text-xs text-gray-400">
-              <span>{m.category}</span>
-              <span>{m.install_date ? new Date(m.install_date).toLocaleDateString() : ""}</span>
+          <div key={m.id} className="bg-white rounded-lg shadow-sm p-3 flex gap-3">
+            {m.picture_data ? (
+              <img src={m.picture_data} alt={m.name} className="h-12 w-12 object-cover rounded border flex-shrink-0" />
+            ) : (
+              <div className="h-12 w-12 rounded border bg-gray-50 flex-shrink-0" />
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-medium text-sm truncate">{m.name}{m.model ? ` (${m.model})` : ""}</div>
+                {canManage && <button onClick={() => setEditing(m)} className="text-xs text-brand-navy flex-shrink-0">Edit</button>}
+              </div>
+              <div className="font-mono text-xs text-gray-500 mt-0.5">{m.serial_number} · {m.company}</div>
+              <div className="text-sm text-gray-600 mt-1">{m.facility_name}{m.facility_name && m.location_label ? " · " : ""}{m.location_label}</div>
+              <div className="flex items-center justify-between mt-1 text-xs text-gray-400">
+                <span>{m.category}</span>
+                <span>{m.install_date ? new Date(m.install_date).toLocaleDateString() : ""}</span>
+              </div>
             </div>
           </div>
         ))}
@@ -178,32 +342,50 @@ export default function MachinesClient({ session }) {
         <table className="min-w-full text-sm">
           <thead>
             <tr className="text-left text-gray-500 border-b">
+              <th className="p-3"></th>
               <th className="p-3">Name</th>
               <th className="p-3">Serial No.</th>
+              <th className="p-3">Company</th>
               <th className="p-3">Category</th>
               <th className="p-3">Facility</th>
               <th className="p-3">Location</th>
               <th className="p-3">Installed</th>
+              {canManage && <th className="p-3"></th>}
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={6} className="p-4 text-center text-gray-400">Loading...</td></tr>}
+            {loading && <tr><td colSpan={9} className="p-4 text-center text-gray-400">Loading...</td></tr>}
             {!loading && machines.length === 0 && (
-              <tr><td colSpan={6} className="p-4 text-center text-gray-400">No machines yet.</td></tr>
+              <tr><td colSpan={9} className="p-4 text-center text-gray-400">No machines yet.</td></tr>
             )}
             {machines.map((m) => (
               <tr key={m.id} className="border-b last:border-0 hover:bg-gray-50">
+                <td className="p-3">
+                  {m.picture_data ? (
+                    <img src={m.picture_data} alt={m.name} className="h-9 w-9 object-cover rounded border" />
+                  ) : (
+                    <div className="h-9 w-9 rounded border bg-gray-50" />
+                  )}
+                </td>
                 <td className="p-3 font-medium">{m.name}{m.model ? ` (${m.model})` : ""}</td>
                 <td className="p-3 font-mono text-xs">{m.serial_number}</td>
+                <td className="p-3">{m.company}</td>
                 <td className="p-3">{m.category}</td>
                 <td className="p-3">{m.facility_name}</td>
                 <td className="p-3">{m.location_label}</td>
                 <td className="p-3">{m.install_date ? new Date(m.install_date).toLocaleDateString() : "-"}</td>
+                {canManage && (
+                  <td className="p-3 text-right">
+                    <button onClick={() => setEditing(m)} className="text-xs text-brand-navy">Edit</button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {editing && <EditMachineModal machine={editing} onClose={() => setEditing(null)} onSaved={handleSaved} />}
     </div>
   );
 }

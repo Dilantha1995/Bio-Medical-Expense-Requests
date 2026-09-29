@@ -45,7 +45,7 @@ function NavDropdown({ label, items, pathname }) {
 }
 
 export default function NavBar({ session }) {
-  const { fullName, canManageUsers, canManageRoles, canManageConfig, canAccessPmDashboard, canViewReports } = session;
+  const { fullName, canManageUsers, canManageRoles, canManageConfig, canAccessPmDashboard, canViewReports, canManageMachines } = session;
   const router = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -75,6 +75,11 @@ export default function NavBar({ session }) {
     ...(canManageRoles ? [{ href: "/admin/roles", label: "Roles" }] : []),
     ...(canManageConfig ? [{ href: "/configure", label: "Configure" }] : []),
   ];
+  const machineLinks = [
+    { href: "/machines", label: "All Machines" },
+    ...(canManageMachines ? [{ href: "/machines/import", label: "Import from Excel" }] : []),
+    { href: "/machines/stickers", label: "Print PM Stickers" },
+  ];
   const showPm = canAccessPmDashboard;
   const showReports = canViewReports;
 
@@ -82,7 +87,8 @@ export default function NavBar({ session }) {
   const mobileLinks = [
     { href: "/dashboard", label: "Dashboard" },
     ...newLinks,
-    { href: "/machines", label: "Machines" },
+    ...machineLinks,
+    { href: "/location", label: "Location" },
     ...(showPm ? [{ href: "/pm", label: "PM Schedule" }] : []),
     ...(showReports ? [{ href: "/reports", label: "Reports" }] : []),
     ...adminLinks,
@@ -100,7 +106,8 @@ export default function NavBar({ session }) {
         <nav className="hidden md:flex items-center gap-5 text-sm text-gray-600">
           <NavLink href="/dashboard" label="Dashboard" pathname={pathname} />
           <NavDropdown label="New" items={newLinks} pathname={pathname} />
-          <NavLink href="/machines" label="Machines" pathname={pathname} />
+          <NavDropdown label="Machines" items={machineLinks} pathname={pathname} />
+          <NavLink href="/location" label="Location" pathname={pathname} />
           {showPm && <NavLink href="/pm" label="PM Schedule" pathname={pathname} />}
           {showReports && <NavLink href="/reports" label="Reports" pathname={pathname} />}
           {adminLinks.length > 0 && <NavDropdown label="Admin" items={adminLinks} pathname={pathname} />}
