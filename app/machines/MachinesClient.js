@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import LocationPicker from "@/components/LocationPicker";
 import SelectWithAdd from "@/components/SelectWithAdd";
 import { resizeImageFile } from "@/lib/imageResize";
@@ -144,6 +145,72 @@ function EditMachineModal({ machine, onClose, onSaved }) {
   );
 }
 
+function TransferMachineModal({ machine, onClose }) {
+  const router = useRouter();
+  const [toFacilityName, setToFacilityName] = useState("");
+  const [toLocationLabel, setToLocationLabel] = useState("");
+  const [transferDate, setTransferDate] = useState(new Date().toISOString().slice(0, 10));
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+    const res = await fetch(`/api/machines/${machine.id}/transfer`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ toFacilityName, toLocationLabel, transferDate, reason }),
+    });
+    const data = await res.json();
+    setSaving(false);
+    if (!res.ok) { setError(data.error || "Failed to create transfer."); return; }
+    router.push(`/machines/transfers/${data.transfer.id}`);
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-2 sm:p-4" onClick={onClose}>
+      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-xl max-w-md w-full p-4 sm:p-6 space-y-3" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-brand-navy">Transfer Machine</h2>
+          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl px-2 -mr-2">✕</button>
+        </div>
+        <p className="text-sm text-gray-600">
+          {machine.name} ({machine.serial_number}) — currently at {machine.facility_name || "no facility set"}
+        </p>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Transfer To (Facility)</label>
+          <SelectWithAdd listKey="machine_facility" value={toFacilityName} onChange={setToFacilityName} placeholder="Destination facility" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Location</label>
+          <LocationPicker value={toLocationLabel} onChange={setToLocationLabel} />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Transfer Date</label>
+          <input type="date" required value={transferDate} onChange={(e) => setTransferDate(e.target.value)}
+            className="w-full border rounded-md px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Reason</label>
+          <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2}
+            className="w-full border rounded-md px-3 py-2 text-sm" />
+        </div>
+
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="text-sm border px-4 py-2 rounded-md">Cancel</button>
+          <button type="submit" disabled={saving || !toFacilityName} className="text-sm bg-brand-navy text-white px-4 py-2 rounded-md disabled:opacity-50">
+            {saving ? "Transferring..." : "Transfer & Generate Document"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 export default function MachinesClient({ session }) {
   const canManage = session.canManageMachines;
   const [machines, setMachines] = useState([]);
@@ -156,6 +223,7 @@ export default function MachinesClient({ session }) {
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [transferring, setTransferring] = useState(null);
 
   async function load(query) {
     setLoading(true);
@@ -220,6 +288,9 @@ export default function MachinesClient({ session }) {
               Import from Excel
             </Link>
           )}
+          <Link href="/machines/transfers" className="text-sm border border-brand-navy text-brand-navy px-3 py-1.5 rounded-md">
+            Transfer History
+          </Link>
           {canManage && (
             <button onClick={() => setShowForm((s) => !s)} className="text-sm bg-brand-navy text-white px-3 py-1.5 rounded-md">
               {showForm ? "Cancel" : "+ Add Machine"}
@@ -324,7 +395,12 @@ export default function MachinesClient({ session }) {
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
                 <div className="font-medium text-sm truncate">{m.name}{m.model ? ` (${m.model})` : ""}</div>
-                {canManage && <button onClick={() => setEditing(m)} className="text-xs text-brand-navy flex-shrink-0">Edit</button>}
+                {canManage && (
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button onClick={() => setTransferring(m)} className="text-xs text-brand-navy">Transfer</button>
+                    <button onClick={() => setEditing(m)} className="text-xs text-brand-navy">Edit</button>
+                  </div>
+                )}
               </div>
               <div className="font-mono text-xs text-gray-500 mt-0.5">{m.serial_number} · {m.company}</div>
               <div className="text-sm text-gray-600 mt-1">{m.facility_name}{m.facility_name && m.location_label ? " · " : ""}{m.location_label}</div>
@@ -375,7 +451,8 @@ export default function MachinesClient({ session }) {
                 <td className="p-3">{m.location_label}</td>
                 <td className="p-3">{m.install_date ? new Date(m.install_date).toLocaleDateString() : "-"}</td>
                 {canManage && (
-                  <td className="p-3 text-right">
+                  <td className="p-3 text-right whitespace-nowrap">
+                    <button onClick={() => setTransferring(m)} className="text-xs text-brand-navy mr-3">Transfer</button>
                     <button onClick={() => setEditing(m)} className="text-xs text-brand-navy">Edit</button>
                   </td>
                 )}
@@ -386,6 +463,7 @@ export default function MachinesClient({ session }) {
       </div>
 
       {editing && <EditMachineModal machine={editing} onClose={() => setEditing(null)} onSaved={handleSaved} />}
+      {transferring && <TransferMachineModal machine={transferring} onClose={() => setTransferring(null)} />}
     </div>
   );
 }

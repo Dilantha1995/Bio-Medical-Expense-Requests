@@ -25,6 +25,7 @@ export default function LocationClient({ session }) {
   const [saving, setSaving] = useState(false);
   const [autoRunning, setAutoRunning] = useState(false);
   const [autoProgress, setAutoProgress] = useState(null); // { done, total, matched, unmatched }
+  const [propagatedNotice, setPropagatedNotice] = useState("");
   const autoCancelRef = useRef(false);
 
   useEffect(() => {
@@ -48,6 +49,12 @@ export default function LocationClient({ session }) {
     (m) => (m.latitude === null || m.latitude === undefined) && m.facility_name
   );
 
+  function applyServerUpdate(data) {
+    const updates = [data.machine, ...(data.propagatedMachines || [])];
+    setMachines((list) => list.map((x) => updates.find((u) => u.id === x.id) || x));
+    return data.propagatedMachines?.length || 0;
+  }
+
   async function autoLocateAll() {
     const targets = unlocatedWithFacility;
     if (targets.length === 0) return;
@@ -55,8 +62,17 @@ export default function LocationClient({ session }) {
     setAutoRunning(true);
     setAutoProgress({ done: 0, total: targets.length, matched: 0, unmatched: 0 });
 
+    // Locating a facility (directly or via propagation from a sibling
+    // earlier in this same run) means every other machine there is now
+    // covered too — skip calling the geocoder again for those.
+    const alreadyLocated = new Set();
+
     for (const m of targets) {
       if (autoCancelRef.current) break;
+      if (alreadyLocated.has(m.id)) {
+        setAutoProgress((p) => ({ ...p, done: p.done + 1, matched: p.matched + 1 }));
+        continue;
+      }
       let matched = false;
       try {
         const q = `${m.facility_name}, Maldives`;
@@ -70,8 +86,9 @@ export default function LocationClient({ session }) {
             body: JSON.stringify({ latitude: best.lat, longitude: best.lon }),
           });
           if (patchRes.ok) {
-            const updated = (await patchRes.json()).machine;
-            setMachines((list) => list.map((x) => (x.id === updated.id ? updated : x)));
+            const data = await patchRes.json();
+            applyServerUpdate(data);
+            for (const p of data.propagatedMachines || []) alreadyLocated.add(p.id);
             matched = true;
           }
         }
@@ -128,9 +145,14 @@ export default function LocationClient({ session }) {
     const data = await res.json();
     setSaving(false);
     if (res.ok) {
-      setMachines((list) => list.map((m) => (m.id === data.machine.id ? data.machine : m)));
+      const propagated = applyServerUpdate(data);
       setPlacingFor(null);
       setPendingLatLng(null);
+      if (propagated > 0) {
+        setPropagatedNotice(
+          `Also set the location for ${propagated} other machine${propagated === 1 ? "" : "s"} at ${data.machine.facility_name}.`
+        );
+      }
     }
   }
 
@@ -175,6 +197,13 @@ export default function LocationClient({ session }) {
               ) : (
                 <button onClick={() => setAutoProgress(null)} className="text-xs border px-3 py-1.5 rounded-md">Dismiss</button>
               )}
+            </div>
+          )}
+
+          {propagatedNotice && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800 flex items-start justify-between gap-2">
+              <span>{propagatedNotice}</span>
+              <button onClick={() => setPropagatedNotice("")} className="text-green-600 flex-shrink-0">✕</button>
             </div>
           )}
 
