@@ -15,7 +15,7 @@ export async function GET(req) {
     const q = searchParams.get("q");
     if (!q || q.trim().length < 2) return NextResponse.json({ results: [] });
 
-    const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=mv&limit=8&q=${encodeURIComponent(q)}`;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=mv&limit=8&accept-language=en&q=${encodeURIComponent(q)}`;
     const res = await fetch(url, {
       headers: { "User-Agent": "PSMS-Travel-App/1.0 (internal machine location lookup)" },
     });

@@ -78,6 +78,7 @@ export default function NavBar({ session }) {
   const machineLinks = [
     { href: "/machines", label: "All Machines" },
     ...(canManageMachines ? [{ href: "/machines/import", label: "Import from Excel" }] : []),
+    { href: "/machines/transfers", label: "Transfer History" },
     { href: "/machines/stickers", label: "Print PM Stickers" },
   ];
   const showPm = canAccessPmDashboard;

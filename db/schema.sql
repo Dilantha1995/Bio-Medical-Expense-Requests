@@ -408,3 +408,33 @@ INSERT INTO option_lists (list_key, label, sort_order) VALUES
   ('machine_name','Yumizen H 2500 DX (Horiba)',9),
   ('machine_name','Petra XLR',10)
 ON CONFLICT (list_key, label) DO NOTHING;
+
+-- Machine Transfers: an audit trail + printable document whenever an
+-- analyzer moves from one facility/island to another. Mirrors the
+-- prepared/checked pattern used by the other document types: the
+-- initiating machine manager's signature is stamped as "Transferred By"
+-- immediately; the receiving engineer (if they have an account) later
+-- stamps their own as "Received By" to confirm arrival.
+CREATE TABLE IF NOT EXISTS machine_transfers (
+  id SERIAL PRIMARY KEY,
+  ref_number TEXT UNIQUE NOT NULL,
+  machine_id INTEGER NOT NULL REFERENCES machines(id),
+  company TEXT NOT NULL DEFAULT 'PSMS',
+  from_facility_name TEXT,
+  from_location_label TEXT,
+  from_latitude NUMERIC(9,6),
+  from_longitude NUMERIC(9,6),
+  to_facility_name TEXT NOT NULL,
+  to_location_label TEXT,
+  to_latitude NUMERIC(9,6),
+  to_longitude NUMERIC(9,6),
+  transfer_date DATE NOT NULL,
+  reason TEXT,
+  transferred_by INTEGER REFERENCES users(id),
+  transferred_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  received_by INTEGER REFERENCES users(id),
+  received_at TIMESTAMPTZ,
+  status TEXT NOT NULL DEFAULT 'in_transit', -- 'in_transit' | 'received'
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_machine_transfers_machine ON machine_transfers(machine_id);

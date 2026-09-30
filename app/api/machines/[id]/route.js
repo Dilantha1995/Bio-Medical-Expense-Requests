@@ -39,7 +39,24 @@ export async function PATCH(req, { params }) {
     values.push(params.id);
     const { rows } = await query(`UPDATE machines SET ${sets.join(", ")} WHERE id=$${i} RETURNING *`, values);
     if (!rows[0]) return NextResponse.json({ error: "Not found." }, { status: 404 });
-    return NextResponse.json({ machine: rows[0] });
+    const machine = rows[0];
+
+    // A location set for one machine at a facility (manually, or via
+    // auto-locate) is almost always the right pin for every other machine
+    // at that same facility — so apply it to any siblings that don't have
+    // one yet instead of making someone place each one individually.
+    let propagatedMachines = [];
+    if (latitude !== undefined && longitude !== undefined && machine.facility_name) {
+      const { rows: siblingRows } = await query(
+        `UPDATE machines SET latitude=$1, longitude=$2
+         WHERE facility_name=$3 AND id<>$4 AND latitude IS NULL
+         RETURNING *`,
+        [latitude, longitude, machine.facility_name, machine.id]
+      );
+      propagatedMachines = siblingRows;
+    }
+
+    return NextResponse.json({ machine, propagatedMachines });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: e.message || "Failed to update machine." }, { status: e.status || 500 });
