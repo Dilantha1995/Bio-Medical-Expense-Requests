@@ -224,6 +224,8 @@ export default function MachinesClient({ session }) {
   const [generating, setGenerating] = useState(false);
   const [editing, setEditing] = useState(null);
   const [transferring, setTransferring] = useState(null);
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillNotice, setBackfillNotice] = useState("");
 
   async function load(query) {
     setLoading(true);
@@ -239,6 +241,20 @@ export default function MachinesClient({ session }) {
   function handleSearch(e) {
     e.preventDefault();
     load(q);
+  }
+
+  async function handleBackfillPictures() {
+    setBackfilling(true);
+    setBackfillNotice("");
+    const res = await fetch("/api/machines/backfill-pictures", { method: "POST" });
+    const data = await res.json();
+    setBackfilling(false);
+    if (res.ok) {
+      setBackfillNotice(`Set a default photo for ${data.updated} of ${data.checked} machine${data.checked === 1 ? "" : "s"} that had none.`);
+      load(q);
+    } else {
+      setBackfillNotice(data.error || "Failed to fill in default pictures.");
+    }
   }
 
   async function handleGenerateSerial() {
@@ -292,12 +308,25 @@ export default function MachinesClient({ session }) {
             Transfer History
           </Link>
           {canManage && (
+            <button onClick={handleBackfillPictures} disabled={backfilling}
+              className="text-sm border border-brand-navy text-brand-navy px-3 py-1.5 rounded-md disabled:opacity-50">
+              {backfilling ? "Filling in..." : "Fill Missing Pictures"}
+            </button>
+          )}
+          {canManage && (
             <button onClick={() => setShowForm((s) => !s)} className="text-sm bg-brand-navy text-white px-3 py-1.5 rounded-md">
               {showForm ? "Cancel" : "+ Add Machine"}
             </button>
           )}
         </div>
       </div>
+
+      {backfillNotice && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800 flex items-start justify-between gap-2">
+          <span>{backfillNotice}</span>
+          <button onClick={() => setBackfillNotice("")} className="text-green-600 flex-shrink-0">✕</button>
+        </div>
+      )}
 
       {showForm && canManage && (
         <form onSubmit={handleCreate} className="bg-white p-4 rounded-lg shadow-sm grid sm:grid-cols-3 gap-3">
