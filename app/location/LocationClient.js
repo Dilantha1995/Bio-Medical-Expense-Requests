@@ -1,7 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 const MachineMap = dynamic(() => import("@/components/MachineMap"), {
   ssr: false,
@@ -19,6 +23,9 @@ export default function LocationClient({ session }) {
   const [placingFor, setPlacingFor] = useState(null); // machine being placed
   const [pendingLatLng, setPendingLatLng] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [autoRunning, setAutoRunning] = useState(false);
+  const [autoProgress, setAutoProgress] = useState(null); // { done, total, matched, unmatched }
+  const autoCancelRef = useRef(false);
 
   useEffect(() => {
     fetch("/api/machines")
@@ -37,6 +44,55 @@ export default function LocationClient({ session }) {
   }, [machines, q]);
 
   const located = machines.filter((m) => m.latitude !== null && m.latitude !== undefined);
+  const unlocatedWithFacility = machines.filter(
+    (m) => (m.latitude === null || m.latitude === undefined) && m.facility_name
+  );
+
+  async function autoLocateAll() {
+    const targets = unlocatedWithFacility;
+    if (targets.length === 0) return;
+    autoCancelRef.current = false;
+    setAutoRunning(true);
+    setAutoProgress({ done: 0, total: targets.length, matched: 0, unmatched: 0 });
+
+    for (const m of targets) {
+      if (autoCancelRef.current) break;
+      let matched = false;
+      try {
+        const q = `${m.facility_name}, Maldives`;
+        const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        const best = data.results?.[0];
+        if (best) {
+          const patchRes = await fetch(`/api/machines/${m.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ latitude: best.lat, longitude: best.lon }),
+          });
+          if (patchRes.ok) {
+            const updated = (await patchRes.json()).machine;
+            setMachines((list) => list.map((x) => (x.id === updated.id ? updated : x)));
+            matched = true;
+          }
+        }
+      } catch {
+        // leave unmatched, counted below
+      }
+      setAutoProgress((p) => ({
+        ...p,
+        done: p.done + 1,
+        matched: p.matched + (matched ? 1 : 0),
+        unmatched: p.unmatched + (matched ? 0 : 1),
+      }));
+      // Nominatim's usage policy caps lookups at 1/second.
+      if (!autoCancelRef.current) await sleep(1100);
+    }
+    setAutoRunning(false);
+  }
+
+  function cancelAutoLocate() {
+    autoCancelRef.current = true;
+  }
 
   async function handleSearch(e) {
     e.preventDefault();
@@ -87,6 +143,41 @@ export default function LocationClient({ session }) {
 
       <div className="grid lg:grid-cols-[320px_1fr] gap-4">
         <div className="space-y-3">
+          {canManage && unlocatedWithFacility.length > 0 && !autoRunning && !autoProgress && (
+            <div className="bg-white p-3 rounded-lg shadow-sm space-y-2">
+              <p className="text-xs text-gray-600">
+                {unlocatedWithFacility.length} machine{unlocatedWithFacility.length === 1 ? "" : "s"} have a facility on
+                file but no map pin yet.
+              </p>
+              <button onClick={autoLocateAll}
+                className="text-xs bg-brand-navy text-white px-3 py-1.5 rounded-md">
+                Auto-locate from facility name ({unlocatedWithFacility.length})
+              </button>
+            </div>
+          )}
+
+          {(autoRunning || autoProgress) && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm space-y-2">
+              <p className="font-medium">
+                {autoRunning ? "Auto-locating..." : "Auto-locate finished"}
+                {" "}({autoProgress.done}/{autoProgress.total})
+              </p>
+              <div className="w-full bg-blue-100 rounded-full h-1.5">
+                <div className="bg-brand-navy h-1.5 rounded-full transition-all"
+                  style={{ width: `${(autoProgress.done / autoProgress.total) * 100}%` }} />
+              </div>
+              <p className="text-xs text-gray-600">
+                {autoProgress.matched} located automatically, {autoProgress.unmatched} could not be matched (set those
+                manually below).
+              </p>
+              {autoRunning ? (
+                <button onClick={cancelAutoLocate} className="text-xs border px-3 py-1.5 rounded-md">Cancel</button>
+              ) : (
+                <button onClick={() => setAutoProgress(null)} className="text-xs border px-3 py-1.5 rounded-md">Dismiss</button>
+              )}
+            </div>
+          )}
+
           <form onSubmit={handleSearch} className="bg-white p-3 rounded-lg shadow-sm space-y-2">
             <label className="block text-xs font-medium text-gray-600">Search the map</label>
             <div className="flex gap-2">
