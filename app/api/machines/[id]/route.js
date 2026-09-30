@@ -17,7 +17,7 @@ export async function PATCH(req, { params }) {
   try {
     await requireMachineManager();
     const body = await req.json();
-    const { name, model, category, facilityName, locationLabel, installDate, notes } = body;
+    const { name, model, category, facilityName, locationLabel, installDate, notes, company, pictureData, latitude, longitude } = body;
 
     const sets = [];
     const values = [];
@@ -29,6 +29,10 @@ export async function PATCH(req, { params }) {
     if (locationLabel !== undefined) { sets.push(`location_label=$${i++}`); values.push(locationLabel); }
     if (installDate !== undefined) { sets.push(`install_date=$${i++}`); values.push(installDate || null); }
     if (notes !== undefined) { sets.push(`notes=$${i++}`); values.push(notes); }
+    if (company !== undefined) { sets.push(`company=$${i++}`); values.push(company); }
+    if (pictureData !== undefined) { sets.push(`picture_data=$${i++}`); values.push(pictureData); }
+    if (latitude !== undefined) { sets.push(`latitude=$${i++}`); values.push(latitude); }
+    if (longitude !== undefined) { sets.push(`longitude=$${i++}`); values.push(longitude); }
 
     if (sets.length === 0) return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
 

@@ -27,18 +27,18 @@ export async function POST(req) {
   try {
     const session = await requireMachineManager();
     const body = await req.json();
-    const { name, model, serialNumber, category, facilityName, locationLabel, installDate, notes } = body;
+    const { name, model, serialNumber, category, facilityName, locationLabel, installDate, notes, company, pictureData } = body;
 
     if (!name || !serialNumber) {
       return NextResponse.json({ error: "Machine name and serial number are required." }, { status: 400 });
     }
 
     const { rows } = await query(
-      `INSERT INTO machines (name, model, serial_number, category, facility_name, location_label, install_date, notes, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      `INSERT INTO machines (name, model, serial_number, category, facility_name, location_label, install_date, notes, created_by, company, picture_data)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
        RETURNING *`,
       [name, model || null, serialNumber.trim(), category || null, facilityName || null, locationLabel || null,
-        installDate || null, notes || null, session.id]
+        installDate || null, notes || null, session.id, company || "PSMS", pictureData || null]
     );
     return NextResponse.json({ machine: rows[0] });
   } catch (e) {

@@ -384,3 +384,27 @@ CREATE TABLE IF NOT EXISTS pm_conditional_rules (
   active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Which company owns/operates a machine, a picture for quick visual ID
+-- (stored as a data URI when uploaded, or a bundled /machines/*.jpg path
+-- for the defaults seeded by the bulk import), and a map location (set by
+-- clicking a point on the Location tab's map, not entered by hand) so it
+-- can be plotted alongside its name and picture.
+ALTER TABLE machines ADD COLUMN IF NOT EXISTS company TEXT NOT NULL DEFAULT 'PSMS';
+ALTER TABLE machines ADD COLUMN IF NOT EXISTS picture_data TEXT;
+ALTER TABLE machines ADD COLUMN IF NOT EXISTS latitude NUMERIC(9,6);
+ALTER TABLE machines ADD COLUMN IF NOT EXISTS longitude NUMERIC(9,6);
+
+INSERT INTO option_lists (list_key, label, sort_order) VALUES
+  ('machine_name','Vitros350',0),
+  ('machine_name','Vitros450',1),
+  ('machine_name','Vitros5600',2),
+  ('machine_name','Vitros3600',3),
+  ('machine_name','Fuji Film NX500',4),
+  ('machine_name','FujiFilm NX600',5),
+  ('machine_name','Fuji Film NX700',6),
+  ('machine_name','VIDAS 3 - Analyzer',7),
+  ('machine_name','VIDAS KUBE - Analyzer',8),
+  ('machine_name','Yumizen H 2500 DX (Horiba)',9),
+  ('machine_name','Petra XLR',10)
+ON CONFLICT (list_key, label) DO NOTHING;
