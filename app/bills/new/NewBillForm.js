@@ -17,6 +17,7 @@ function blankState() {
     items: [emptyBillItem()],
     advanceRequestId: "",
     advanceReceived: "",
+    advanceLineItems: [],
     company: "PSMS",
   };
 }
@@ -57,6 +58,7 @@ export default function NewBillForm() {
             setForm((f) => ({
               ...f,
               advanceReceived: found.total_amount,
+              advanceLineItems: found.line_items || [],
               destinationLabel: found.destination_label || "",
               purposeOfTravel: found.purpose_of_travel || "",
               company: found.company || "PSMS",
@@ -74,10 +76,13 @@ export default function NewBillForm() {
         ...f,
         advanceRequestId: id,
         advanceReceived: found.total_amount,
+        advanceLineItems: found.line_items || [],
         destinationLabel: found.destination_label || "",
         purposeOfTravel: found.purpose_of_travel || "",
         company: found.company || "PSMS",
       }));
+    } else {
+      setForm((f) => ({ ...f, advanceRequestId: id, advanceLineItems: [] }));
     }
   }
 
@@ -203,6 +208,7 @@ export default function NewBillForm() {
           ]}
           items={form.items}
           advanceReceived={form.advanceReceived}
+          advanceLineItems={form.advanceLineItems}
           onClose={() => setShowPreview(false)}
         />
       )}
