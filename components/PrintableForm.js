@@ -1,8 +1,10 @@
 import Image from "next/image";
-import { lineItemTotal, formatMVR } from "@/lib/calc";
-import { billItemTotal, summarizeBillItems, advanceVsSpendAnalysis } from "@/lib/billCalc";
+import { lineItemTotal, formatMVR, EXPENSE_FIELDS } from "@/lib/calc";
+import { billItemTotal, summarizeBillItems, categoryVariance, CATEGORY_LABELS } from "@/lib/billCalc";
 import { shippingItemTotal, summarizeShippingItemsByCurrency } from "@/lib/shippingCalc";
 import { formatDateInTz, formatDateTimeInTz } from "@/lib/formatDate";
+
+const CATEGORY_COLS = EXPENSE_FIELDS.map((key) => ({ key, label: CATEGORY_LABELS[key] }));
 
 const COMPANY_INFO = {
   PSMS: { name: "ProSynergy Maldives Pvt. Ltd.", logo: "/psms-logo.jpg" },
@@ -31,12 +33,15 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
   const company = COMPANY_INFO[doc.company] || null;
   const summary = isBill ? summarizeBillItems(items) : null;
   const shippingByCurrency = isShipping ? summarizeShippingItemsByCurrency(items) : null;
-  const advanceAnalysis = isBill && Number(doc.advance_received) > 0
-    ? advanceVsSpendAnalysis(doc.total_amount, doc.advance_received)
+  const variance = isBill && doc.advance_line_items && doc.advance_line_items.length > 0
+    ? categoryVariance(items, doc.advance_line_items)
     : null;
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm print:shadow-none print:rounded-none relative" id="printable-form">
+      {!isShipping && (
+        <style>{"@media print { @page { size: A4 landscape; } }"}</style>
+      )}
       {doc.deleted_at && (
         <div className="bg-red-50 border-2 border-red-300 rounded-md p-3 mb-4 text-sm text-red-800">
           <p className="font-semibold">This entry was deleted</p>
@@ -82,9 +87,11 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
             <thead className="bg-gray-50">
               <tr>
                 <th>Srn</th>
-                <th>Description</th>
+                <th>Bill Date</th>
                 <th>Bill No.</th>
-                <th>Nature of Payment</th>
+                <th>Supplier Name</th>
+                <th>Description</th>
+                {CATEGORY_COLS.map((c) => <th key={c.key}>{c.label}</th>)}
                 <th>Supporting Documents</th>
                 <th>Total Amount</th>
               </tr>
@@ -93,9 +100,11 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
               {items.map((it, i) => (
                 <tr key={i}>
                   <td>{i + 1}</td>
-                  <td>{it.description}</td>
+                  <td>{it.billDate ? formatDateInTz(it.billDate, timezone) : ""}</td>
                   <td>{it.billNo}</td>
-                  <td>{it.natureOfPayment}</td>
+                  <td>{it.supplierName}</td>
+                  <td>{it.description}</td>
+                  {CATEGORY_COLS.map((c) => <td key={c.key} className="text-right">{formatMVR(it[c.key])}</td>)}
                   <td>{it.supportingDocs}</td>
                   <td className="text-right">{formatMVR(billItemTotal(it))}</td>
                 </tr>
@@ -103,7 +112,8 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
             </tbody>
             <tfoot>
               <tr className="font-semibold bg-gray-50">
-                <td colSpan={5} className="text-right">TOTAL</td>
+                <td colSpan={5 + CATEGORY_COLS.length} className="text-right">TOTAL</td>
+                <td></td>
                 <td className="text-right">{formatMVR(doc.total_amount)}</td>
               </tr>
             </tfoot>
@@ -208,15 +218,6 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
               </div>
             ))}
           </div>
-          <div className="border rounded-md p-2">
-            <p className="font-medium mb-1">By Nature of Payment</p>
-            {Object.entries(summary.byNature).map(([k, v]) => (
-              <div key={k} className="flex justify-between">
-                <span>{k} ({v.count})</span>
-                <span>{formatMVR(v.total)}</span>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
@@ -234,21 +235,30 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
         </div>
       )}
 
-      {advanceAnalysis && (
-        <div className="border rounded-md p-3 mb-4 text-xs">
-          <p className="font-medium mb-2 text-sm">Advance vs Spend Analysis</p>
-          <div className="flex justify-between py-1">
-            <span>Advance Taken</span>
-            <span>{currency} {formatMVR(advanceAnalysis.advanceReceived)}</span>
-          </div>
-          <div className="flex justify-between py-1 border-b pb-2 mb-1">
-            <span>Spend Amount</span>
-            <span>{currency} {formatMVR(advanceAnalysis.spendAmount)}</span>
-          </div>
-          <div className="flex justify-between font-semibold">
-            <span>{advanceAnalysis.isExcess ? "Excess" : "Minus"}</span>
-            <span>{currency} {formatMVR(advanceAnalysis.difference)}</span>
-          </div>
+      {variance && (
+        <div className="border rounded-md mb-4 text-xs overflow-hidden">
+          <p className="font-medium p-2 border-b bg-gray-50">Advance vs Actual by Category</p>
+          <table className="form-table w-full border-collapse">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="text-left">Category</th>
+                <th className="text-right">Advance Taken</th>
+                <th className="text-right">Actual Spent</th>
+                <th className="text-right">Variance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {variance.map((r) => (
+                <tr key={r.key} className={r.isTotal ? "font-semibold bg-gray-50" : ""}>
+                  <td>{r.label}</td>
+                  <td className="text-right">{currency} {formatMVR(r.advance)}</td>
+                  <td className="text-right">{currency} {formatMVR(r.actual)}</td>
+                  <td className="text-right">{r.variance > 0 ? "+" : ""}{formatMVR(r.variance)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="text-[11px] text-gray-400 p-2">Positive variance = spent more than advance; negative = under advance.</p>
         </div>
       )}
 

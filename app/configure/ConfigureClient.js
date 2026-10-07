@@ -150,13 +150,6 @@ export default function ConfigureClient() {
       </div>
 
       <OptionListManager
-        title="Nature of Payment (Bill Summary)"
-        description="These are the options engineers pick from when itemizing a Bill Summary."
-        endpoint="/api/config/nature-of-payment"
-        placeholder="e.g. Taxi Fare"
-      />
-
-      <OptionListManager
         title="Designations"
         description="Job titles available when adding or editing a user."
         endpoint="/api/config/designations"
