@@ -1,6 +1,6 @@
 import Image from "next/image";
-import { lineItemTotal, formatMVR, EXPENSE_FIELDS } from "@/lib/calc";
-import { billItemTotal, summarizeBillItems, categoryVariance, CATEGORY_LABELS } from "@/lib/billCalc";
+import { lineItemTotal, categoryTotals, formatMVR, EXPENSE_FIELDS } from "@/lib/calc";
+import { billItemTotal, billCategoryTotals, summarizeBillItems, categoryVariance, CATEGORY_LABELS } from "@/lib/billCalc";
 import { shippingItemTotal, summarizeShippingItemsByCurrency } from "@/lib/shippingCalc";
 import { formatDateInTz, formatDateTimeInTz } from "@/lib/formatDate";
 
@@ -32,6 +32,8 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
   const items = doc.line_items || [];
   const company = COMPANY_INFO[doc.company] || null;
   const summary = isBill ? summarizeBillItems(items) : null;
+  const billTotals = isBill ? billCategoryTotals(items) : null;
+  const travelTotals = !isBill && !isShipping ? categoryTotals(items) : null;
   const shippingByCurrency = isShipping ? summarizeShippingItemsByCurrency(items) : null;
   const variance = isBill && doc.advance_line_items && doc.advance_line_items.length > 0
     ? categoryVariance(items, doc.advance_line_items)
@@ -112,7 +114,8 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
             </tbody>
             <tfoot>
               <tr className="font-semibold bg-gray-50">
-                <td colSpan={5 + CATEGORY_COLS.length} className="text-right">TOTAL</td>
+                <td colSpan={5} className="text-right">TOTAL</td>
+                {CATEGORY_COLS.map((c) => <td key={c.key} className="text-right">{formatMVR(billTotals[c.key])}</td>)}
                 <td></td>
                 <td className="text-right">{formatMVR(doc.total_amount)}</td>
               </tr>
@@ -199,7 +202,8 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
             </tbody>
             <tfoot>
               <tr className="font-semibold bg-gray-50">
-                <td colSpan={12} className="text-right">TOTAL</td>
+                <td colSpan={5} className="text-right">TOTAL</td>
+                {EXPENSE_FIELDS.map((f) => <td key={f} className="text-right">{formatMVR(travelTotals[f])}</td>)}
                 <td className="text-right">{formatMVR(doc.total_amount)}</td>
               </tr>
             </tfoot>
@@ -208,7 +212,7 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
       )}
 
       {isBill && summary && items.length > 0 && (
-        <div className="grid sm:grid-cols-2 gap-4 mb-4 text-xs">
+        <div className="grid sm:grid-cols-2 gap-4 mb-4 text-xs print:hidden">
           <div className="border rounded-md p-2">
             <p className="font-medium mb-1">By Supporting Documents</p>
             {Object.entries(summary.bySupportingDocs).map(([k, v]) => (

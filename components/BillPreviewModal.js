@@ -1,12 +1,13 @@
 "use client";
 
-import { billItemTotal, billGrandTotal, categoryVariance, CATEGORY_LABELS } from "@/lib/billCalc";
+import { billItemTotal, billGrandTotal, billCategoryTotals, categoryVariance, CATEGORY_LABELS } from "@/lib/billCalc";
 import { EXPENSE_FIELDS, formatMVR } from "@/lib/calc";
 
 const CATEGORY_COLS = EXPENSE_FIELDS.map((key) => ({ key, label: CATEGORY_LABELS[key] }));
 
 export default function BillPreviewModal({ title, meta, items, advanceLineItems, onClose }) {
   const grandTotal = billGrandTotal(items);
+  const totals = billCategoryTotals(items);
   const variance = advanceLineItems && advanceLineItems.length > 0 ? categoryVariance(items, advanceLineItems) : null;
 
   return (
@@ -58,7 +59,10 @@ export default function BillPreviewModal({ title, meta, items, advanceLineItems,
             </tbody>
             <tfoot>
               <tr className="border-t font-semibold">
-                <td colSpan={5 + CATEGORY_COLS.length} className="p-2 text-right">TOTAL</td>
+                <td colSpan={5} className="p-2 text-right">TOTAL</td>
+                {CATEGORY_COLS.map((c) => (
+                  <td key={c.key} className="p-2 text-right">{formatMVR(totals[c.key])}</td>
+                ))}
                 <td className="p-2"></td>
                 <td className="p-2 text-right">{formatMVR(grandTotal)}</td>
               </tr>
