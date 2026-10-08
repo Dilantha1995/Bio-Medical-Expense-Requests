@@ -25,7 +25,7 @@ export default async function RequestDetailPage({ params }) {
     <div>
       <NavBar session={session} />
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6">
-        <div className="max-w-4xl mx-auto print:max-w-none">
+        <div className="mx-auto print:max-w-none">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 print:hidden">
             <h1 className="text-lg sm:text-xl font-semibold text-brand-navy break-all">Advance Request {record.ref_number}</h1>
             <ActionsBar id={record.id} kind="requests" status={record.status} session={session} returnedAt={record.returned_at} paymentStatus={record.payment_status}
