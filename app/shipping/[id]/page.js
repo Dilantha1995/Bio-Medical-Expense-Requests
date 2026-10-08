@@ -27,7 +27,7 @@ export default async function ShippingDetailPage({ params }) {
           <h1 className="text-lg sm:text-xl font-semibold text-brand-navy break-all">Shipping Expense Request {record.ref_number}</h1>
           <ActionsBar id={record.id} kind="shipping" status={record.status} session={session} paymentStatus={record.payment_status} engineerId={record.engineer_id} />
         </div>
-        <div className="max-w-4xl mx-auto">
+        <div className="mx-auto">
           <PrintableForm doc={doc} timezone={appSettings.timezone} currency={appSettings.currency} />
         </div>
       </main>
