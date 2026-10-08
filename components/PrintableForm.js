@@ -242,26 +242,28 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
       {variance && (
         <div className="border rounded-md mb-4 text-xs overflow-hidden">
           <p className="font-medium p-2 border-b bg-gray-50">Advance vs Actual by Category</p>
-          <table className="form-table w-full border-collapse">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="text-left">Category</th>
-                <th className="text-right">Advance Taken</th>
-                <th className="text-right">Actual Spent</th>
-                <th className="text-right">Variance</th>
-              </tr>
-            </thead>
-            <tbody>
-              {variance.map((r) => (
-                <tr key={r.key} className={r.isTotal ? "font-semibold bg-gray-50" : ""}>
-                  <td>{r.label}</td>
-                  <td className="text-right">{currency} {formatMVR(r.advance)}</td>
-                  <td className="text-right">{currency} {formatMVR(r.actual)}</td>
-                  <td className="text-right">{r.variance > 0 ? "+" : ""}{formatMVR(r.variance)}</td>
+          <div className="overflow-x-auto">
+            <table className="form-table w-full border-collapse">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="text-left">Category</th>
+                  <th className="text-right">Advance Taken</th>
+                  <th className="text-right">Actual Spent</th>
+                  <th className="text-right">Variance</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {variance.map((r) => (
+                  <tr key={r.key} className={r.isTotal ? "font-semibold bg-gray-50" : ""}>
+                    <td>{r.label}</td>
+                    <td className="text-right">{currency} {formatMVR(r.advance)}</td>
+                    <td className="text-right">{currency} {formatMVR(r.actual)}</td>
+                    <td className="text-right">{r.variance > 0 ? "+" : ""}{formatMVR(r.variance)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <p className="text-[11px] text-gray-400 p-2">Positive variance = spent more than advance; negative = under advance.</p>
         </div>
       )}
