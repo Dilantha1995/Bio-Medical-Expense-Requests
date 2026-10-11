@@ -27,7 +27,7 @@ export async function GET(req) {
       conditions.push(`bs.engineer_id = $${params.length}`);
     } else if (engineerId) {
       params.push(engineerId);
-      conditions.push(`bs.engineer_id = ${params.length}`);
+      conditions.push(`bs.engineer_id = $${params.length}`);
     }
     // Drafts are private to their owner until final submission; admins can
     // see all drafts. Approvers only see drafts they own.
