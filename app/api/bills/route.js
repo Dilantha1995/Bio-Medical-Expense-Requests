@@ -24,7 +24,7 @@ export async function GET(req) {
     const conditions = [];
     if (!session.canViewAllRecords) {
       params.push(session.id);
-      conditions.push(`bs.engineer_id = ${params.length}`);
+      conditions.push(`bs.engineer_id = $${params.length}`);
     } else if (engineerId) {
       params.push(engineerId);
       conditions.push(`bs.engineer_id = ${params.length}`);
@@ -33,7 +33,7 @@ export async function GET(req) {
     // see all drafts. Approvers only see drafts they own.
     if (session.role !== "admin") {
       params.push(session.id);
-      conditions.push(`(bs.status <> 'draft' OR bs.engineer_id = ${params.length})`);
+      conditions.push(`(bs.status <> 'draft' OR bs.engineer_id = $${params.length})`);
     }
     if (status) {
       params.push(status);
