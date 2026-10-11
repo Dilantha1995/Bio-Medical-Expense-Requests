@@ -214,6 +214,7 @@ export default function NewBillForm({ billId = null, initialBill = null }) {
         saving={saving}
         successBanner={successBanner}
         draftMode={!billId || initialBill?.status === "draft"}
+        editMode={Boolean(billId)}
         onPreview={() => setShowPreview(true)}
         onSubmit={handleSubmit}
       />
