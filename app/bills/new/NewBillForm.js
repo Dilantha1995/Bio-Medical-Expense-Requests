@@ -22,12 +22,22 @@ function blankState() {
   };
 }
 
-export default function NewBillForm() {
+export default function NewBillForm({ billId = null, initialBill = null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectId = searchParams.get("advanceRequestId") || "";
 
-  const [form, setForm] = useState(() => ({ ...blankState(), advanceRequestId: preselectId }));
+  const [form, setForm] = useState(() => initialBill ? ({
+    summaryDate: String(initialBill.summary_date || new Date().toISOString().slice(0, 10)).slice(0, 10),
+    destinationLabel: initialBill.destination_label || "",
+    purposeOfTravel: initialBill.purpose_of_travel || "",
+    notes: initialBill.notes || "",
+    items: initialBill.line_items || [emptyBillItem()],
+    advanceRequestId: initialBill.advance_request_id ? String(initialBill.advance_request_id) : "",
+    advanceReceived: initialBill.advance_received ?? "",
+    advanceLineItems: initialBill.advance_line_items || [],
+    company: initialBill.company || "PSMS",
+  }) : ({ ...blankState(), advanceRequestId: preselectId }));
   const [myRequests, setMyRequests] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
   const [error, setError] = useState("");
@@ -40,7 +50,7 @@ export default function NewBillForm() {
       .then((r) => r.json())
       .then((d) => setNextRefNumber(d.refNumber || ""));
   }
-  useEffect(() => { loadNextRefNumber(form.company); }, [form.company]);
+  useEffect(() => { if (!billId) loadNextRefNumber(form.company); }, [form.company, billId]);
 
   function set(key, value) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -91,19 +101,20 @@ export default function NewBillForm() {
     setSuccessBanner("");
     setSaving(true);
     try {
-      const res = await fetch("/api/bills", {
-        method: "POST",
+      const payload = {
+        summaryDate: form.summaryDate,
+        destinationLabel: form.destinationLabel,
+        purposeOfTravel: form.purposeOfTravel,
+        notes: form.notes,
+        lineItems: form.items,
+        advanceRequestId: form.advanceRequestId || null,
+        advanceReceived: form.advanceReceived,
+        company: form.company,
+      };
+      const res = await fetch(billId ? `/api/bills/${billId}` : "/api/bills", {
+        method: billId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          summaryDate: form.summaryDate,
-          destinationLabel: form.destinationLabel,
-          purposeOfTravel: form.purposeOfTravel,
-          notes: form.notes,
-          lineItems: form.items,
-          advanceRequestId: form.advanceRequestId || null,
-          advanceReceived: form.advanceReceived,
-          company: form.company,
-        }),
+        body: JSON.stringify(billId ? { action: "save_changes", ...payload } : payload),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -114,6 +125,12 @@ export default function NewBillForm() {
 
       const refNumber = data.bill.ref_number;
       const id = data.bill.id;
+
+      if (billId) {
+        router.push(`/bills/${billId}`);
+        router.refresh();
+        return;
+      }
 
       if (mode === "print") {
         window.open(`/api/bills/${id}/pdf`, "_blank");
@@ -188,9 +205,15 @@ export default function NewBillForm() {
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
+      {billId && initialBill?.status !== "draft" && (
+        <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-4 py-2">
+          This bill summary has already been finally submitted. Only an admin can save changes.
+        </p>
+      )}
       <SubmitActions
         saving={saving}
         successBanner={successBanner}
+        draftMode={!billId || initialBill?.status === "draft"}
         onPreview={() => setShowPreview(true)}
         onSubmit={handleSubmit}
       />
