@@ -75,9 +75,11 @@ Log in as the admin user, go to **Users** in the top nav:
   table (same fields as your paper form), and submit. A reference number like
   `PSMS/ADV/AH/26/01` is generated automatically.
 - After the trip, they click **New Bill Summary**, optionally link it to the original
-  advance request (auto-fills the advance amount), fill in actual expenses, and submit.
-  This gets its own reference number, e.g. `PSMS/BM/AH/26/01`, following the exact format
-  from your SOP.
+  advance request (auto-fills the advance amount), and save the summary as a **Draft**.
+  Drafts can be edited and saved repeatedly while receipts/expense details are collected.
+  When everything is complete, open the summary and click **Final Submission** to send it
+  for checking. Only admins can edit the summary after final submission. Each summary gets
+  its own reference number, e.g. `PSMS/BM/AH/26/01`, following the exact format from your SOP.
 - Approvers see everything on their dashboard and can **Mark Checked**, then **Approve**
   (or **Reject** with a reason) directly from the form's detail page.
 - Anyone can click **Download PDF** or **Print** on a submitted form — it's laid out like

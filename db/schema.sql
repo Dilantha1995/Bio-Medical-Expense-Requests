@@ -104,6 +104,7 @@ ALTER TABLE advance_requests ADD COLUMN IF NOT EXISTS deletion_reason TEXT;
 ALTER TABLE bill_summaries ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 ALTER TABLE bill_summaries ADD COLUMN IF NOT EXISTS deleted_by INTEGER REFERENCES users(id);
 ALTER TABLE bill_summaries ADD COLUMN IF NOT EXISTS deletion_reason TEXT;
+ALTER TABLE bill_summaries ADD COLUMN IF NOT EXISTS final_submitted_at TIMESTAMPTZ;
 
 -- Payment processing workflow, run by the accounts team after approval:
 -- null -> 'processing' -> 'processed' (with a scanned payment slip attached).

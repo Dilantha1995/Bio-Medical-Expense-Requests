@@ -20,6 +20,8 @@ export default function ActionsBar({ id, kind, status, session, returnedAt, paym
   const slipInputRef = useRef(null);
 
   const isOwner = session.id === engineerId;
+  const canEditBill = kind === "bills" && ((status === "draft" && isOwner) || session.role === "admin");
+  const canFinalSubmit = kind === "bills" && status === "draft" && (isOwner || session.role === "admin");
   const canCheck = session.canCheck && status === "submitted";
   const canApprove = session.canFinalApprove && status === "checked";
   const canReject = session.canCheck && ["submitted", "checked"].includes(status);
@@ -96,6 +98,22 @@ export default function ActionsBar({ id, kind, status, session, returnedAt, paym
     <div className="w-full sm:w-auto">
       <div className="flex flex-wrap items-center gap-2">
         {error && <span className="text-xs text-red-600 w-full sm:w-auto">{error}</span>}
+        {canEditBill && (
+          <button onClick={() => router.push(`/bills/${id}/edit`)} disabled={busy}
+            className="text-sm border border-brand-navy text-brand-navy px-3 py-2 sm:py-1.5 rounded-md disabled:opacity-50">
+            Edit
+          </button>
+        )}
+        {canFinalSubmit && (
+          <button onClick={() => {
+            if (window.confirm("Final submit this bill summary for checking? You can no longer edit it unless an admin makes changes.")) {
+              doAction("final_submit");
+            }
+          }} disabled={busy}
+            className="text-sm bg-blue-600 text-white px-3 py-2 sm:py-1.5 rounded-md disabled:opacity-50">
+            {busy ? "Submitting..." : "Final Submission"}
+          </button>
+        )}
         {canCheck && (
           <button onClick={() => doAction("check")} disabled={busy}
             className="text-sm bg-blue-600 text-white px-3 py-2 sm:py-1.5 rounded-md disabled:opacity-50">

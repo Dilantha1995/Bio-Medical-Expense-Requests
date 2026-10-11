@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { getBillSummaryById as fetchBill } from "@/lib/data";
-import { notify, notifyMany, getFinalApproverIds } from "@/lib/notifications";
+import { billGrandTotal } from "@/lib/billCalc";
+import { notify, notifyMany, getFinalApproverIds, getCheckerIds } from "@/lib/notifications";
 
 export async function GET(req, { params }) {
   try {
@@ -21,8 +22,100 @@ export async function GET(req, { params }) {
 export async function PATCH(req, { params }) {
   try {
     const session = await requireSession();
-    const { action, reason, paymentSlipData } = await req.json();
+    const body = await req.json();
+    const { action, reason, paymentSlipData } = body;
     const link = `/bills/${params.id}`;
+
+    // Save draft edits or perform the explicit final submission. Drafts never
+    // enter the approval workflow until final_submit is requested.
+    if (action === "save_changes" || action === "final_submit") {
+      const record = await fetchBill(params.id);
+      if (!record) return NextResponse.json({ error: "Not found." }, { status: 404 });
+      const isAdmin = session.role === "admin";
+      const isOwner = Number(record.engineer_id) === Number(session.id);
+
+      if (action === "save_changes") {
+        if (record.status === "draft" ? (!isOwner && !isAdmin) : !isAdmin) {
+          return NextResponse.json({ error: "Only the owner can edit a draft; after final submission, only admins can edit." }, { status: 403 });
+        }
+
+        const {
+          summaryDate, destinationLabel, purposeOfTravel, notes, lineItems,
+          advanceRequestId, advanceReceived, company,
+        } = body;
+
+        if (!Array.isArray(lineItems)) {
+          return NextResponse.json({ error: "Bill line items are required." }, { status: 400 });
+        }
+        const companyValue = ["PSMS", "PPM"].includes(company) ? company : record.company || "PSMS";
+        if (advanceRequestId) {
+          const owner = await query(
+            `SELECT engineer_id FROM advance_requests WHERE id=$1 AND engineer_id=$2`,
+            [advanceRequestId, record.engineer_id]
+          );
+          if (!owner.rows[0]) {
+            return NextResponse.json({ error: "The linked advance request must belong to the bill summary owner." }, { status: 403 });
+          }
+        }
+
+        const total = billGrandTotal(lineItems);
+        const advReceived = parseFloat(advanceReceived) || 0;
+        const balance = total - advReceived;
+        await query(
+          `UPDATE bill_summaries
+           SET summary_date=$1, destination_label=$2, purpose_of_travel=$3, notes=$4,
+               line_items=$5, total_amount=$6, advance_request_id=$7, advance_received=$8,
+               balance_due=$9, company=$10
+           WHERE id=$11`,
+          [
+            summaryDate || record.summary_date, destinationLabel || "", purposeOfTravel || "", notes || "",
+            JSON.stringify(lineItems), total, advanceRequestId || null, advReceived, balance, companyValue, params.id,
+          ]
+        );
+        return NextResponse.json({ bill: await fetchBill(params.id) });
+      }
+
+      if (record.status !== "draft") {
+        return NextResponse.json({ error: "This bill summary has already been finally submitted." }, { status: 400 });
+      }
+      if (!isOwner && !isAdmin) {
+        return NextResponse.json({ error: "Only the bill summary owner or an admin can submit it." }, { status: 403 });
+      }
+      const items = Array.isArray(record.line_items) ? record.line_items : [];
+      const hasExpense = items.some((item) =>
+        (parseFloat(item.food) || 0) > 0 ||
+        (parseFloat(item.accommodation) || 0) > 0 ||
+        (parseFloat(item.airfare) || 0) > 0 ||
+        (parseFloat(item.taxiFerry) || 0) > 0 ||
+        (parseFloat(item.seaTransport) || 0) > 0 ||
+        (parseFloat(item.landTransport) || 0) > 0 ||
+        (parseFloat(item.others) || 0) > 0 ||
+        (parseFloat(item.amount) || 0) > 0 ||
+        Boolean((item.description || "").trim() || (item.supplierName || "").trim() || (item.billNo || "").trim())
+      );
+      if (!record.summary_date || !hasExpense) {
+        return NextResponse.json({ error: "Before final submission, please enter at least one bill description or expense amount." }, { status: 400 });
+      }
+
+      const submitted = await query(
+        `UPDATE bill_summaries
+         SET status='submitted', final_submitted_at=now(), prepared_by=$1, prepared_at=now()
+         WHERE id=$2 AND status='draft'
+         RETURNING id`,
+        [session.id, params.id]
+      );
+      if (!submitted.rows[0]) {
+        return NextResponse.json({ error: "This bill summary has already been submitted." }, { status: 409 });
+      }
+      const checkerIds = await getCheckerIds();
+      await notifyMany(
+        checkerIds,
+        "New bill summary submitted",
+        `${record.ref_number} (${record.engineer_name || session.fullName}) needs checking.`,
+        link
+      );
+      return NextResponse.json({ bill: await fetchBill(params.id) });
+    }
 
     if (action === "delete") {
       if (!session.canDeleteRecords) {

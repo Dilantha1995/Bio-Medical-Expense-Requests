@@ -29,6 +29,12 @@ export async function GET(req) {
       params.push(engineerId);
       conditions.push(`bs.engineer_id = $${params.length}`);
     }
+    // Drafts are private to their owner until final submission; admins can
+    // see all drafts. Approvers only see drafts they own.
+    if (session.role !== "admin") {
+      params.push(session.id);
+      conditions.push(`(bs.status <> 'draft' OR bs.engineer_id = $${params.length})`);
+    }
     if (status) {
       params.push(status);
       conditions.push(`bs.status = $${params.length}`);
@@ -61,8 +67,10 @@ export async function POST(req) {
     const body = await req.json();
     const { summaryDate, destinationLabel, purposeOfTravel, notes, lineItems, advanceRequestId, advanceReceived, company } = body;
 
-    if (!summaryDate || !Array.isArray(lineItems) || lineItems.length === 0) {
-      return NextResponse.json({ error: "Summary date and at least one line item are required." }, { status: 400 });
+    // New summaries are always drafts. Final submission is a separate action
+    // from the saved summary page so users can fill in the rows over time.
+    if (!Array.isArray(lineItems)) {
+      return NextResponse.json({ error: "Bill line items are required." }, { status: 400 });
     }
 
     if (advanceRequestId) {
@@ -82,16 +90,15 @@ export async function POST(req) {
       `INSERT INTO bill_summaries
         (ref_number, engineer_id, advance_request_id, summary_date, destination_label, purpose_of_travel, notes,
          line_items, total_amount, advance_received, balance_due, company, status, prepared_by, prepared_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'submitted',$13, now())
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'draft',$13, now())
        RETURNING *`,
-      [refNumber, session.id, advanceRequestId || null, summaryDate, destinationLabel, purposeOfTravel, notes,
-        JSON.stringify(lineItems), total, advReceived, balance, companyValue, session.id]
+      [refNumber, session.id, advanceRequestId || null, summaryDate || new Date().toISOString().slice(0, 10),
+        destinationLabel || "", purposeOfTravel || "", notes || "", JSON.stringify(lineItems),
+        total, advReceived, balance, companyValue, session.id]
     );
 
+    // No checker notification until the user explicitly final-submits.
     const created = rows[0];
-    const checkerIds = await getCheckerIds();
-    await notifyMany(checkerIds, "New bill summary submitted", `${created.ref_number} (${session.fullName}) needs checking.`, `/bills/${created.id}`);
-
     return NextResponse.json({ bill: created });
   } catch (e) {
     console.error(e);
