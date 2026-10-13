@@ -87,7 +87,7 @@ export default function PrintableForm({ doc, timezone }) {
 
       {isBill ? (
         <div className="overflow-x-auto mb-4">
-          <table className="form-table w-full text-xs border-collapse">
+          <table className="form-table w-full text-xs border-collapse" style={{ minWidth: "1000px" }}>
             <thead className="bg-gray-50">
               <tr>
                 <th style={{ width: "4%" }}>Srn</th>
@@ -148,7 +148,7 @@ export default function PrintableForm({ doc, timezone }) {
         </div>
       ) : isShipping ? (
         <div className="overflow-x-auto mb-4">
-          <table className="form-table w-full text-xs border-collapse">
+          <table className="form-table w-full text-xs border-collapse" style={{ minWidth: "800px" }}>
             <thead className="bg-gray-50">
               <tr>
                 <th style={{ width: "5%" }}>Srn</th>
@@ -187,7 +187,7 @@ export default function PrintableForm({ doc, timezone }) {
         </div>
       ) : (
         <div className="overflow-x-auto mb-4">
-          <table className="form-table w-full text-xs border-collapse">
+          <table className="form-table w-full text-xs border-collapse" style={{ minWidth: "1000px" }}>
             <thead className="bg-gray-50">
               <tr>
                 <th style={{ width: "4%" }}>#</th>
