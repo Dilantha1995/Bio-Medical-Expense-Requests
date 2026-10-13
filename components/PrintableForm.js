@@ -90,14 +90,14 @@ export default function PrintableForm({ doc, timezone }) {
           <table className="form-table w-full text-xs border-collapse">
             <thead className="bg-gray-50">
               <tr>
-                <th>Srn</th>
-                <th>Bill Date</th>
-                <th>Bill No.</th>
-                <th>Supplier Name</th>
-                <th>Description</th>
-                {CATEGORY_COLS.map((c) => <th key={c.key}>{c.label}</th>)}
-                <th>Supporting Documents</th>
-                <th>Total Amount</th>
+                <th style={{ width: "4%" }}>Srn</th>
+                <th style={{ width: "7%" }}>Bill Date</th>
+                <th style={{ width: "6%" }}>Bill No.</th>
+                <th style={{ width: "10%" }}>Supplier Name</th>
+                <th style={{ width: "12%" }}>Description</th>
+                {CATEGORY_COLS.map((c) => <th key={c.key} style={{ width: "6%" }}>{c.label}</th>)}
+                <th style={{ width: "9%" }}>Supporting Documents</th>
+                <th style={{ width: "10%" }}>Total Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -151,15 +151,15 @@ export default function PrintableForm({ doc, timezone }) {
           <table className="form-table w-full text-xs border-collapse">
             <thead className="bg-gray-50">
               <tr>
-                <th>Srn</th>
-                <th>Date</th>
-                <th>Description</th>
-                <th>DN No.</th>
-                <th>Ref No.</th>
-                <th>Location</th>
-                <th>Type of Expense</th>
-                <th>Amount</th>
-                <th>Currency</th>
+                <th style={{ width: "5%" }}>Srn</th>
+                <th style={{ width: "9%" }}>Date</th>
+                <th style={{ width: "18%" }}>Description</th>
+                <th style={{ width: "10%" }}>DN No.</th>
+                <th style={{ width: "10%" }}>Ref No.</th>
+                <th style={{ width: "14%" }}>Location</th>
+                <th style={{ width: "14%" }}>Type of Expense</th>
+                <th style={{ width: "10%" }}>Amount</th>
+                <th style={{ width: "10%" }}>Currency</th>
               </tr>
             </thead>
             <tbody>
@@ -190,19 +190,19 @@ export default function PrintableForm({ doc, timezone }) {
           <table className="form-table w-full text-xs border-collapse">
             <thead className="bg-gray-50">
               <tr>
-                <th>#</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Mode</th>
-                <th>Days</th>
-                <th>Food</th>
-                <th>Accom.</th>
-                <th>Air fare</th>
-                <th>Taxi/Ferry</th>
-                <th>Sea Transp.</th>
-                <th>Land Transp.</th>
-                <th>Others</th>
-                <th>Total</th>
+                <th style={{ width: "4%" }}>#</th>
+                <th style={{ width: "13%" }}>From</th>
+                <th style={{ width: "13%" }}>To</th>
+                <th style={{ width: "6%" }}>Mode</th>
+                <th style={{ width: "5%" }}>Days</th>
+                <th style={{ width: "7%" }}>Food</th>
+                <th style={{ width: "8%" }}>Accom.</th>
+                <th style={{ width: "7%" }}>Air fare</th>
+                <th style={{ width: "8%" }}>Taxi/Ferry</th>
+                <th style={{ width: "7%" }}>Sea Transp.</th>
+                <th style={{ width: "7%" }}>Land Transp.</th>
+                <th style={{ width: "7%" }}>Others</th>
+                <th style={{ width: "8%" }}>Total</th>
               </tr>
             </thead>
             <tbody>

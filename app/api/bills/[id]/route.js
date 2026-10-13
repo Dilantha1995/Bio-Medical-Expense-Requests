@@ -3,7 +3,7 @@ import { query } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { getBillSummaryById as fetchBill } from "@/lib/data";
 import { billGrandTotal } from "@/lib/billCalc";
-import { notify, notifyMany, getFinalApproverIds, getCheckerIds } from "@/lib/notifications";
+import { notify, notifyMany, getFinalApproverIds, getCheckerIds, getFinalApproverUsers } from "@/lib/notifications";
 
 export async function GET(req, { params }) {
   try {
@@ -23,7 +23,7 @@ export async function PATCH(req, { params }) {
   try {
     const session = await requireSession();
     const body = await req.json();
-    const { action, reason, paymentSlipData } = body;
+    const { action, reason, paymentSlipData, checkedByUserId, approvedByUserId } = body;
     const link = `/bills/${params.id}`;
 
     // Save draft edits or perform the explicit final submission. Drafts never
@@ -185,9 +185,17 @@ export async function PATCH(req, { params }) {
       if (record.status !== "submitted") {
         return NextResponse.json({ error: "This bill summary has already been checked." }, { status: 400 });
       }
+      let checkedBy = session.id;
+      if (checkedByUserId) {
+        const checkerIds = await getCheckerIds();
+        if (!checkerIds.includes(Number(checkedByUserId))) {
+          return NextResponse.json({ error: "Selected checker is not authorized to check bill summaries." }, { status: 400 });
+        }
+        checkedBy = checkedByUserId;
+      }
       await query(
         `UPDATE bill_summaries SET status='checked', checked_by=$1, checked_at=now() WHERE id=$2`,
-        [session.id, params.id]
+        [checkedBy, params.id]
       );
       await notify(record.engineer_id, "Bill summary checked", `${record.ref_number} has been checked and is awaiting final approval.`, link);
       const approverIds = await getFinalApproverIds();
@@ -199,9 +207,17 @@ export async function PATCH(req, { params }) {
       if (record.status !== "checked") {
         return NextResponse.json({ error: "This bill summary must be checked before it can be approved." }, { status: 400 });
       }
+      let approvedBy = session.id;
+      if (approvedByUserId) {
+        const approvers = await getFinalApproverUsers();
+        if (!approvers.some((a) => a.id === Number(approvedByUserId))) {
+          return NextResponse.json({ error: "Selected approver is not authorized to give final approval." }, { status: 400 });
+        }
+        approvedBy = approvedByUserId;
+      }
       await query(
         `UPDATE bill_summaries SET status='approved', approved_by=$1, approved_at=now() WHERE id=$2`,
-        [session.id, params.id]
+        [approvedBy, params.id]
       );
       await notify(record.engineer_id, "Bill summary approved", `${record.ref_number} has been approved.`, link);
     } else if (action === "reject") {

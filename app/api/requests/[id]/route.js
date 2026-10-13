@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { getAdvanceRequestById as fetchRequest } from "@/lib/data";
-import { notify, notifyMany, getFinalApproverIds, getCheckerIds } from "@/lib/notifications";
+import { notify, notifyMany, getFinalApproverIds, getCheckerIds, getFinalApproverUsers } from "@/lib/notifications";
 import { grandTotal } from "@/lib/calc";
 
 export async function GET(req, { params }) {
@@ -22,7 +22,7 @@ export async function GET(req, { params }) {
 export async function PATCH(req, { params }) {
   try {
     const session = await requireSession();
-    const { action, reason, returnedAt, paymentSlipData, newEndDate, extraLineItems } = await req.json();
+    const { action, reason, returnedAt, paymentSlipData, newEndDate, extraLineItems, checkedByUserId, approvedByUserId } = await req.json();
     const link = `/requests/${params.id}`;
 
     if (action === "mark_returned") {
@@ -183,9 +183,17 @@ export async function PATCH(req, { params }) {
       if (record.status !== "submitted") {
         return NextResponse.json({ error: "This request has already been checked." }, { status: 400 });
       }
+      let checkedBy = session.id;
+      if (checkedByUserId) {
+        const checkerIds = await getCheckerIds();
+        if (!checkerIds.includes(Number(checkedByUserId))) {
+          return NextResponse.json({ error: "Selected checker is not authorized to check requests." }, { status: 400 });
+        }
+        checkedBy = checkedByUserId;
+      }
       await query(
         `UPDATE advance_requests SET status='checked', checked_by=$1, checked_at=now() WHERE id=$2`,
-        [session.id, params.id]
+        [checkedBy, params.id]
       );
       await notify(record.engineer_id, "Advance request checked", `${record.ref_number} has been checked and is awaiting final approval.`, link);
       const approverIds = await getFinalApproverIds();
@@ -197,13 +205,24 @@ export async function PATCH(req, { params }) {
       if (record.status !== "checked") {
         return NextResponse.json({ error: "This request must be checked before it can be approved." }, { status: 400 });
       }
+      let approvedBy = session.id;
+      let approvedByName = session.fullName;
+      if (approvedByUserId) {
+        const approvers = await getFinalApproverUsers();
+        const chosen = approvers.find((a) => a.id === Number(approvedByUserId));
+        if (!chosen) {
+          return NextResponse.json({ error: "Selected approver is not authorized to give final approval." }, { status: 400 });
+        }
+        approvedBy = chosen.id;
+        approvedByName = chosen.full_name;
+      }
       if (record.is_extension_pending) {
         const history = [...(record.extension_history || [])];
         const last = history[history.length - 1];
         if (last && last.status === "pending") {
           last.status = "approved";
-          last.approvedBy = session.id;
-          last.approvedByName = session.fullName;
+          last.approvedBy = approvedBy;
+          last.approvedByName = approvedByName;
           last.approvedAt = new Date().toISOString();
         }
         await query(
@@ -211,12 +230,12 @@ export async function PATCH(req, { params }) {
            SET status='approved', approved_by=$1, approved_at=now(), expected_end_date=$2,
                is_extension_pending=false, pre_extension_snapshot=NULL, last_reminder_sent_on=NULL, extension_history=$3
            WHERE id=$4`,
-          [session.id, last ? last.newEndDate : record.expected_end_date, JSON.stringify(history), params.id]
+          [approvedBy, last ? last.newEndDate : record.expected_end_date, JSON.stringify(history), params.id]
         );
       } else {
         await query(
           `UPDATE advance_requests SET status='approved', approved_by=$1, approved_at=now() WHERE id=$2`,
-          [session.id, params.id]
+          [approvedBy, params.id]
         );
       }
       await notify(record.engineer_id, "Advance request approved", `${record.ref_number} has been approved.`, link);

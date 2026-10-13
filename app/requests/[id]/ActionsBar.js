@@ -4,6 +4,9 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { resizeImageFile } from "@/lib/imageResize";
 
+const DEFAULT_CHECKER_NAME = "Dilantha Chinthana";
+const DEFAULT_APPROVER_NAME = "Irshad Momin (BD)";
+
 export default function ActionsBar({ id, kind, status, session, returnedAt, paymentStatus, engineerId, taskCompletedAt, isExtensionPending, expectedEndDate }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -17,7 +20,50 @@ export default function ActionsBar({ id, kind, status, session, returnedAt, paym
   const [showExtensionBox, setShowExtensionBox] = useState(false);
   const [extensionDate, setExtensionDate] = useState("");
   const [extensionReason, setExtensionReason] = useState("");
+  const [showCheckBox, setShowCheckBox] = useState(false);
+  const [showApproveBox, setShowApproveBox] = useState(false);
+  const [checkers, setCheckers] = useState(null);
+  const [approvers, setApprovers] = useState(null);
+  const [selectedCheckerId, setSelectedCheckerId] = useState("");
+  const [selectedApproverId, setSelectedApproverId] = useState("");
   const slipInputRef = useRef(null);
+
+  function pickDefault(list, name) {
+    const match = list.find((u) => u.full_name === name);
+    return match ? String(match.id) : (list[0] ? String(list[0].id) : "");
+  }
+
+  async function openCheckBox() {
+    setShowCheckBox(true);
+    if (checkers) return;
+    const res = await fetch("/api/signers");
+    const data = await res.json();
+    if (res.ok) {
+      setCheckers(data.checkers);
+      setSelectedCheckerId(pickDefault(data.checkers, DEFAULT_CHECKER_NAME));
+      if (!approvers) setApprovers(data.approvers);
+    }
+  }
+
+  async function openApproveBox() {
+    setShowApproveBox(true);
+    if (approvers) return;
+    const res = await fetch("/api/signers");
+    const data = await res.json();
+    if (res.ok) {
+      setApprovers(data.approvers);
+      setSelectedApproverId(pickDefault(data.approvers, DEFAULT_APPROVER_NAME));
+      if (!checkers) setCheckers(data.checkers);
+    }
+  }
+
+  function confirmCheck() {
+    doAction("check", { checkedByUserId: selectedCheckerId || undefined });
+  }
+
+  function confirmApprove() {
+    doAction("approve", { approvedByUserId: selectedApproverId || undefined });
+  }
 
   const isOwner = session.id === engineerId;
   const canEditBill = kind === "bills" && ((status === "draft" && isOwner) || session.role === "admin");
@@ -57,6 +103,8 @@ export default function ActionsBar({ id, kind, status, session, returnedAt, paym
     setShowDeleteBox(false);
     setShowRejectPaymentBox(false);
     setShowExtensionBox(false);
+    setShowCheckBox(false);
+    setShowApproveBox(false);
     router.refresh();
   }
 
@@ -114,14 +162,14 @@ export default function ActionsBar({ id, kind, status, session, returnedAt, paym
             {busy ? "Submitting..." : "Final Submission"}
           </button>
         )}
-        {canCheck && (
-          <button onClick={() => doAction("check")} disabled={busy}
+        {canCheck && !showCheckBox && (
+          <button onClick={openCheckBox} disabled={busy}
             className="text-sm bg-blue-600 text-white px-3 py-2 sm:py-1.5 rounded-md disabled:opacity-50">
             Mark Checked
           </button>
         )}
-        {canApprove && (
-          <button onClick={() => doAction("approve")} disabled={busy}
+        {canApprove && !showApproveBox && (
+          <button onClick={openApproveBox} disabled={busy}
             className="text-sm bg-green-600 text-white px-3 py-2 sm:py-1.5 rounded-md disabled:opacity-50">
             Approve
           </button>
@@ -185,6 +233,48 @@ export default function ActionsBar({ id, kind, status, session, returnedAt, paym
           </button>
         )}
       </div>
+
+      {canCheck && showCheckBox && (
+        <div className="mt-2 flex flex-wrap items-center gap-2 bg-blue-50 border border-blue-200 rounded-md p-2">
+          <label className="text-xs text-blue-800">Checked by:</label>
+          {checkers ? (
+            <select value={selectedCheckerId} onChange={(e) => setSelectedCheckerId(e.target.value)}
+              className="border rounded px-2 py-1.5 text-sm min-w-[180px]">
+              {checkers.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+            </select>
+          ) : (
+            <span className="text-sm text-blue-700">Loading...</span>
+          )}
+          <button onClick={confirmCheck} disabled={busy || !checkers}
+            className="text-sm bg-blue-600 text-white px-3 py-1.5 rounded-md disabled:opacity-50">
+            {busy ? "Saving..." : "Confirm"}
+          </button>
+          <button onClick={() => setShowCheckBox(false)} className="text-sm border px-3 py-1.5 rounded-md">
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {canApprove && showApproveBox && (
+        <div className="mt-2 flex flex-wrap items-center gap-2 bg-green-50 border border-green-200 rounded-md p-2">
+          <label className="text-xs text-green-800">Approved by:</label>
+          {approvers ? (
+            <select value={selectedApproverId} onChange={(e) => setSelectedApproverId(e.target.value)}
+              className="border rounded px-2 py-1.5 text-sm min-w-[180px]">
+              {approvers.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+            </select>
+          ) : (
+            <span className="text-sm text-green-700">Loading...</span>
+          )}
+          <button onClick={confirmApprove} disabled={busy || !approvers}
+            className="text-sm bg-green-600 text-white px-3 py-1.5 rounded-md disabled:opacity-50">
+            {busy ? "Saving..." : "Confirm"}
+          </button>
+          <button onClick={() => setShowApproveBox(false)} className="text-sm border px-3 py-1.5 rounded-md">
+            Cancel
+          </button>
+        </div>
+      )}
 
       {canMarkReturned && showReturnPicker && (
         <div className="mt-2 flex flex-wrap items-center gap-2 bg-amber-50 border border-amber-200 rounded-md p-2">
