@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { lineItemTotal, categoryTotals, formatMVR, EXPENSE_FIELDS } from "@/lib/calc";
-import { billItemTotal, billCategoryTotals, summarizeBillItems, categoryVariance, CATEGORY_LABELS } from "@/lib/billCalc";
+import { billItemTotal, billCategoryTotals, summarizeBillItems, CATEGORY_LABELS } from "@/lib/billCalc";
 import { shippingItemTotal, summarizeShippingItemsByCurrency } from "@/lib/shippingCalc";
 import { formatDateInTz, formatDateTimeInTz } from "@/lib/formatDate";
 
@@ -26,7 +26,7 @@ function SignatureBlock({ label, name, signature, timestamp, timezone }) {
   );
 }
 
-export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
+export default function PrintableForm({ doc, timezone }) {
   const isBill = doc.docTitle === "Summary of Bills";
   const isShipping = doc.docTitle === "Shipping Expense Request";
   const items = doc.line_items || [];
@@ -35,9 +35,11 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
   const billTotals = isBill ? billCategoryTotals(items) : null;
   const travelTotals = !isBill && !isShipping ? categoryTotals(items) : null;
   const shippingByCurrency = isShipping ? summarizeShippingItemsByCurrency(items) : null;
-  const variance = isBill && doc.advance_line_items && doc.advance_line_items.length > 0
-    ? categoryVariance(items, doc.advance_line_items)
+  const advanceTotals = isBill && doc.advance_line_items && doc.advance_line_items.length > 0
+    ? categoryTotals(doc.advance_line_items)
     : null;
+  const advanceGrandTotal = advanceTotals ? EXPENSE_FIELDS.reduce((s, f) => s + advanceTotals[f], 0) : 0;
+  const varianceGrandTotal = advanceTotals ? (Number(doc.total_amount) || 0) - advanceGrandTotal : 0;
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm print:shadow-none print:rounded-none relative" id="printable-form">
@@ -119,8 +121,30 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
                 <td></td>
                 <td className="text-right">{formatMVR(doc.total_amount)}</td>
               </tr>
+              {advanceTotals && (
+                <>
+                  <tr className="font-semibold bg-gray-50">
+                    <td colSpan={5} className="text-right">ADVANCE TAKEN</td>
+                    {CATEGORY_COLS.map((c) => <td key={c.key} className="text-right">{formatMVR(advanceTotals[c.key])}</td>)}
+                    <td></td>
+                    <td className="text-right">{formatMVR(advanceGrandTotal)}</td>
+                  </tr>
+                  <tr className="font-semibold bg-gray-50">
+                    <td colSpan={5} className="text-right">VARIANCE</td>
+                    {CATEGORY_COLS.map((c) => {
+                      const v = billTotals[c.key] - advanceTotals[c.key];
+                      return <td key={c.key} className="text-right">{v > 0 ? "+" : ""}{formatMVR(v)}</td>;
+                    })}
+                    <td></td>
+                    <td className="text-right">{varianceGrandTotal > 0 ? "+" : ""}{formatMVR(varianceGrandTotal)}</td>
+                  </tr>
+                </>
+              )}
             </tfoot>
           </table>
+          {advanceTotals && (
+            <p className="text-[11px] text-gray-400 mt-1">Positive variance = spent more than advance; negative = under advance.</p>
+          )}
         </div>
       ) : isShipping ? (
         <div className="overflow-x-auto mb-4">
@@ -236,33 +260,6 @@ export default function PrintableForm({ doc, timezone, currency = "MVR" }) {
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      {variance && (
-        <div className="border rounded-md mb-4 text-xs overflow-hidden">
-          <p className="font-medium p-2 border-b bg-gray-50">Advance vs Actual by Category</p>
-          <table className="form-table w-full border-collapse">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="text-left">Category</th>
-                <th className="text-right">Advance Taken</th>
-                <th className="text-right">Actual Spent</th>
-                <th className="text-right">Variance</th>
-              </tr>
-            </thead>
-            <tbody>
-              {variance.map((r) => (
-                <tr key={r.key} className={r.isTotal ? "font-semibold bg-gray-50" : ""}>
-                  <td>{r.label}</td>
-                  <td className="text-right">{currency} {formatMVR(r.advance)}</td>
-                  <td className="text-right">{currency} {formatMVR(r.actual)}</td>
-                  <td className="text-right">{r.variance > 0 ? "+" : ""}{formatMVR(r.variance)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="text-[11px] text-gray-400 p-2">Positive variance = spent more than advance; negative = under advance.</p>
         </div>
       )}
 

@@ -1,14 +1,16 @@
 "use client";
 
-import { billItemTotal, billGrandTotal, billCategoryTotals, categoryVariance, CATEGORY_LABELS } from "@/lib/billCalc";
-import { EXPENSE_FIELDS, formatMVR } from "@/lib/calc";
+import { billItemTotal, billGrandTotal, billCategoryTotals, CATEGORY_LABELS } from "@/lib/billCalc";
+import { EXPENSE_FIELDS, categoryTotals, formatMVR } from "@/lib/calc";
 
 const CATEGORY_COLS = EXPENSE_FIELDS.map((key) => ({ key, label: CATEGORY_LABELS[key] }));
 
 export default function BillPreviewModal({ title, meta, items, advanceLineItems, onClose }) {
   const grandTotal = billGrandTotal(items);
   const totals = billCategoryTotals(items);
-  const variance = advanceLineItems && advanceLineItems.length > 0 ? categoryVariance(items, advanceLineItems) : null;
+  const advanceTotals = advanceLineItems && advanceLineItems.length > 0 ? categoryTotals(advanceLineItems) : null;
+  const advanceGrandTotal = advanceTotals ? EXPENSE_FIELDS.reduce((s, f) => s + advanceTotals[f], 0) : 0;
+  const varianceGrandTotal = advanceTotals ? grandTotal - advanceGrandTotal : 0;
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-2 sm:p-4" onClick={onClose}>
@@ -66,37 +68,38 @@ export default function BillPreviewModal({ title, meta, items, advanceLineItems,
                 <td className="p-2"></td>
                 <td className="p-2 text-right">{formatMVR(grandTotal)}</td>
               </tr>
+              {advanceTotals && (
+                <>
+                  <tr className="border-t font-semibold bg-gray-50">
+                    <td colSpan={5} className="p-2 text-right">ADVANCE TAKEN</td>
+                    {CATEGORY_COLS.map((c) => (
+                      <td key={c.key} className="p-2 text-right">{formatMVR(advanceTotals[c.key])}</td>
+                    ))}
+                    <td className="p-2"></td>
+                    <td className="p-2 text-right">{formatMVR(advanceGrandTotal)}</td>
+                  </tr>
+                  <tr className="border-t font-semibold bg-gray-50">
+                    <td colSpan={5} className="p-2 text-right">VARIANCE</td>
+                    {CATEGORY_COLS.map((c) => {
+                      const v = totals[c.key] - advanceTotals[c.key];
+                      return (
+                        <td key={c.key} className={`p-2 text-right ${v > 0 ? "text-red-600" : v < 0 ? "text-green-700" : ""}`}>
+                          {v > 0 ? "+" : ""}{formatMVR(v)}
+                        </td>
+                      );
+                    })}
+                    <td className="p-2"></td>
+                    <td className={`p-2 text-right ${varianceGrandTotal > 0 ? "text-red-600" : varianceGrandTotal < 0 ? "text-green-700" : ""}`}>
+                      {varianceGrandTotal > 0 ? "+" : ""}{formatMVR(varianceGrandTotal)}
+                    </td>
+                  </tr>
+                </>
+              )}
             </tfoot>
           </table>
         </div>
-
-        {variance && (
-          <div className="border rounded-lg mt-4 overflow-x-auto">
-            <p className="font-medium text-sm p-2 border-b bg-gray-50">Advance vs Actual by Category</p>
-            <table className="min-w-full text-xs">
-              <thead>
-                <tr className="text-left text-gray-500 border-b">
-                  <th className="p-2">Category</th>
-                  <th className="p-2 text-right">Advance Taken</th>
-                  <th className="p-2 text-right">Actual Spent</th>
-                  <th className="p-2 text-right">Variance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {variance.map((r) => (
-                  <tr key={r.key} className={`border-b last:border-0 ${r.isTotal ? "font-semibold bg-gray-50" : ""}`}>
-                    <td className="p-2">{r.label}</td>
-                    <td className="p-2 text-right">{formatMVR(r.advance)}</td>
-                    <td className="p-2 text-right">{formatMVR(r.actual)}</td>
-                    <td className={`p-2 text-right ${r.variance > 0 ? "text-red-600" : r.variance < 0 ? "text-green-700" : ""}`}>
-                      {r.variance > 0 ? "+" : ""}{formatMVR(r.variance)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="text-[11px] text-gray-400 p-2">Positive variance = spent more than advance; negative = under advance.</p>
-          </div>
+        {advanceTotals && (
+          <p className="text-[11px] text-gray-400 mt-1">Positive variance = spent more than advance; negative = under advance.</p>
         )}
 
         <div className="mt-4 text-right">
