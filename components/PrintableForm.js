@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { lineItemTotal, categoryTotals, formatMVR, EXPENSE_FIELDS } from "@/lib/calc";
+import { lineItemTotal, categoryTotals, formatMVR, formatMVROrBlank, EXPENSE_FIELDS } from "@/lib/calc";
 import { billItemTotal, billCategoryTotals, summarizeBillItems, CATEGORY_LABELS } from "@/lib/billCalc";
 import { shippingItemTotal, summarizeShippingItemsByCurrency } from "@/lib/shippingCalc";
 import { formatDateInTz, formatDateTimeInTz } from "@/lib/formatDate";
@@ -108,16 +108,16 @@ export default function PrintableForm({ doc, timezone }) {
                   <td>{it.billNo}</td>
                   <td>{it.supplierName}</td>
                   <td>{it.description}</td>
-                  {CATEGORY_COLS.map((c) => <td key={c.key} className="text-right">{formatMVR(it[c.key])}</td>)}
+                  {CATEGORY_COLS.map((c) => <td key={c.key} className="text-right">{formatMVROrBlank(it[c.key])}</td>)}
                   <td>{it.supportingDocs}</td>
-                  <td className="text-right">{formatMVR(billItemTotal(it))}</td>
+                  <td className="text-right">{formatMVROrBlank(billItemTotal(it))}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
               <tr className="font-semibold bg-gray-50">
                 <td colSpan={5} className="text-right">TOTAL</td>
-                {CATEGORY_COLS.map((c) => <td key={c.key} className="text-right">{formatMVR(billTotals[c.key])}</td>)}
+                {CATEGORY_COLS.map((c) => <td key={c.key} className="text-right">{formatMVROrBlank(billTotals[c.key])}</td>)}
                 <td></td>
                 <td className="text-right">{formatMVR(doc.total_amount)}</td>
               </tr>
@@ -125,7 +125,7 @@ export default function PrintableForm({ doc, timezone }) {
                 <>
                   <tr className="font-semibold bg-gray-50">
                     <td colSpan={5} className="text-right">ADVANCE TAKEN</td>
-                    {CATEGORY_COLS.map((c) => <td key={c.key} className="text-right">{formatMVR(advanceTotals[c.key])}</td>)}
+                    {CATEGORY_COLS.map((c) => <td key={c.key} className="text-right">{formatMVROrBlank(advanceTotals[c.key])}</td>)}
                     <td></td>
                     <td className="text-right">{formatMVR(advanceGrandTotal)}</td>
                   </tr>
@@ -133,7 +133,7 @@ export default function PrintableForm({ doc, timezone }) {
                     <td colSpan={5} className="text-right">VARIANCE</td>
                     {CATEGORY_COLS.map((c) => {
                       const v = billTotals[c.key] - advanceTotals[c.key];
-                      return <td key={c.key} className="text-right">{v > 0 ? "+" : ""}{formatMVR(v)}</td>;
+                      return <td key={c.key} className="text-right">{v > 0 ? "+" : ""}{formatMVROrBlank(v)}</td>;
                     })}
                     <td></td>
                     <td className="text-right">{varianceGrandTotal > 0 ? "+" : ""}{formatMVR(varianceGrandTotal)}</td>
@@ -213,13 +213,13 @@ export default function PrintableForm({ doc, timezone }) {
                   <td>{it.toLocation}<br />{it.toDate}{it.machineLabel && <><br /><span className="text-gray-500">{it.machineLabel}</span></>}</td>
                   <td>{it.mode}</td>
                   <td className="text-right">{it.days}</td>
-                  <td className="text-right">{formatMVR(it.food)}</td>
-                  <td className="text-right">{formatMVR(it.accommodation)}</td>
-                  <td className="text-right">{formatMVR(it.airfare)}</td>
-                  <td className="text-right">{formatMVR(it.taxiFerry)}</td>
-                  <td className="text-right">{formatMVR(it.seaTransport)}</td>
-                  <td className="text-right">{formatMVR(it.landTransport)}</td>
-                  <td className="text-right">{formatMVR(it.others)}</td>
+                  <td className="text-right">{formatMVROrBlank(it.food)}</td>
+                  <td className="text-right">{formatMVROrBlank(it.accommodation)}</td>
+                  <td className="text-right">{formatMVROrBlank(it.airfare)}</td>
+                  <td className="text-right">{formatMVROrBlank(it.taxiFerry)}</td>
+                  <td className="text-right">{formatMVROrBlank(it.seaTransport)}</td>
+                  <td className="text-right">{formatMVROrBlank(it.landTransport)}</td>
+                  <td className="text-right">{formatMVROrBlank(it.others)}</td>
                   <td className="text-right font-medium">{formatMVR(lineItemTotal(it))}</td>
                 </tr>
               ))}
@@ -227,7 +227,7 @@ export default function PrintableForm({ doc, timezone }) {
             <tfoot>
               <tr className="font-semibold bg-gray-50">
                 <td colSpan={5} className="text-right">TOTAL</td>
-                {EXPENSE_FIELDS.map((f) => <td key={f} className="text-right">{formatMVR(travelTotals[f])}</td>)}
+                {EXPENSE_FIELDS.map((f) => <td key={f} className="text-right">{formatMVROrBlank(travelTotals[f])}</td>)}
                 <td className="text-right">{formatMVR(doc.total_amount)}</td>
               </tr>
             </tfoot>
