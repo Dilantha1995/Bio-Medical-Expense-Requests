@@ -110,7 +110,7 @@ export default function PrintableForm({ doc, timezone }) {
                   <td>{it.description}</td>
                   {CATEGORY_COLS.map((c) => <td key={c.key} className="text-right">{formatMVROrBlank(it[c.key])}</td>)}
                   <td>{it.supportingDocs}</td>
-                  <td className="text-right">{formatMVROrBlank(billItemTotal(it))}</td>
+                  <td className="text-right">{formatMVR(billItemTotal(it))}</td>
                 </tr>
               ))}
             </tbody>

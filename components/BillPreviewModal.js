@@ -55,7 +55,7 @@ export default function BillPreviewModal({ title, meta, items, advanceLineItems,
                     <td key={c.key} className="p-2 text-right">{formatMVROrBlank(it[c.key])}</td>
                   ))}
                   <td className="p-2">{it.supportingDocs}</td>
-                  <td className="p-2 text-right">{formatMVROrBlank(billItemTotal(it))}</td>
+                  <td className="p-2 text-right">{formatMVR(billItemTotal(it))}</td>
                 </tr>
               ))}
             </tbody>
