@@ -84,7 +84,7 @@ export default function BillPreviewModal({ title, meta, items, advanceLineItems,
                       const v = totals[c.key] - advanceTotals[c.key];
                       return (
                         <td key={c.key} className={`p-2 text-right ${v > 0 ? "text-red-600" : v < 0 ? "text-green-700" : ""}`}>
-                          {v > 0 ? "+" : ""}{formatMVROrBlank(v)}
+                          {v > 0 ? "+" : ""}{formatMVR(v)}
                         </td>
                       );
                     })}
