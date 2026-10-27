@@ -133,7 +133,7 @@ export default function PrintableForm({ doc, timezone }) {
                     <td colSpan={5} className="text-right">VARIANCE</td>
                     {CATEGORY_COLS.map((c) => {
                       const v = billTotals[c.key] - advanceTotals[c.key];
-                      return <td key={c.key} className="text-right">{v > 0 ? "+" : ""}{formatMVROrBlank(v)}</td>;
+                      return <td key={c.key} className="text-right">{v > 0 ? "+" : ""}{formatMVR(v)}</td>;
                     })}
                     <td></td>
                     <td className="text-right">{varianceGrandTotal > 0 ? "+" : ""}{formatMVR(varianceGrandTotal)}</td>
