@@ -1,7 +1,7 @@
 "use client";
 
 import { billItemTotal, billGrandTotal, billCategoryTotals, CATEGORY_LABELS } from "@/lib/billCalc";
-import { EXPENSE_FIELDS, categoryTotals, formatMVR } from "@/lib/calc";
+import { EXPENSE_FIELDS, categoryTotals, formatMVR, formatMVROrBlank } from "@/lib/calc";
 
 const CATEGORY_COLS = EXPENSE_FIELDS.map((key) => ({ key, label: CATEGORY_LABELS[key] }));
 
@@ -52,7 +52,7 @@ export default function BillPreviewModal({ title, meta, items, advanceLineItems,
                   <td className="p-2">{it.supplierName}</td>
                   <td className="p-2">{it.description}</td>
                   {CATEGORY_COLS.map((c) => (
-                    <td key={c.key} className="p-2 text-right">{formatMVR(it[c.key])}</td>
+                    <td key={c.key} className="p-2 text-right">{formatMVROrBlank(it[c.key])}</td>
                   ))}
                   <td className="p-2">{it.supportingDocs}</td>
                   <td className="p-2 text-right">{formatMVR(billItemTotal(it))}</td>
@@ -63,7 +63,7 @@ export default function BillPreviewModal({ title, meta, items, advanceLineItems,
               <tr className="border-t font-semibold">
                 <td colSpan={5} className="p-2 text-right">TOTAL</td>
                 {CATEGORY_COLS.map((c) => (
-                  <td key={c.key} className="p-2 text-right">{formatMVR(totals[c.key])}</td>
+                  <td key={c.key} className="p-2 text-right">{formatMVROrBlank(totals[c.key])}</td>
                 ))}
                 <td className="p-2"></td>
                 <td className="p-2 text-right">{formatMVR(grandTotal)}</td>
@@ -73,7 +73,7 @@ export default function BillPreviewModal({ title, meta, items, advanceLineItems,
                   <tr className="border-t font-semibold bg-gray-50">
                     <td colSpan={5} className="p-2 text-right">ADVANCE TAKEN</td>
                     {CATEGORY_COLS.map((c) => (
-                      <td key={c.key} className="p-2 text-right">{formatMVR(advanceTotals[c.key])}</td>
+                      <td key={c.key} className="p-2 text-right">{formatMVROrBlank(advanceTotals[c.key])}</td>
                     ))}
                     <td className="p-2"></td>
                     <td className="p-2 text-right">{formatMVR(advanceGrandTotal)}</td>
@@ -84,7 +84,7 @@ export default function BillPreviewModal({ title, meta, items, advanceLineItems,
                       const v = totals[c.key] - advanceTotals[c.key];
                       return (
                         <td key={c.key} className={`p-2 text-right ${v > 0 ? "text-red-600" : v < 0 ? "text-green-700" : ""}`}>
-                          {v > 0 ? "+" : ""}{formatMVR(v)}
+                          {v > 0 ? "+" : ""}{formatMVROrBlank(v)}
                         </td>
                       );
                     })}
